@@ -1,0 +1,14 @@
+{
+  "name": "e2e",
+  "version": "0.1.0",
+  "description": "e2ectl skill pack for CLI readiness, configuration, node lifecycle, and publishing workflows.",
+  "repository": "https://github.com/REPLACE_ME/e2e-skills",
+  "skills": [
+    {
+      "name": "use-e2e",
+      "path": "skills/use-e2e/SKILL.md",
+      "description": "Use e2ectl for verify/install/configure flows, node list/create/delete operations, and e2e-skills publishing."
+    }
+  ],
+  "hooksDir": "hooks"
+}
