@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Install e2e-skills into Codex, Claude, and/or OpenCode directories.
+Install e2enetworks-skills into Codex, Claude, and/or OpenCode directories.
 This script installs the skill pack only. It does not install the e2ectl CLI.
 
 Usage:
@@ -21,8 +21,8 @@ Options:
 
 Examples:
   ./scripts/install.sh --target all
-  curl -fsSL https://raw.githubusercontent.com/<OWNER>/e2e-skills/main/scripts/install.sh | \
-    bash -s -- --repo-url https://github.com/<OWNER>/e2e-skills.git --target opencode
+  curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+    bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target opencode
 EOF
 }
 

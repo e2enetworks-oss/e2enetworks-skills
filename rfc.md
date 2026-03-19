@@ -1,7 +1,7 @@
 # E2E Skills RFC
 
 ## Objective
-Publish a standalone `e2e-skills` repository that supports:
+Publish a standalone `e2enetworks-skills` repository that supports:
 1. Codex skill installation with one `curl` command
 2. Claude plugin installation from the same repo
 3. a workflow where the `e2ectl` CLI is published separately, then verified and used by agents for node operations
@@ -9,7 +9,7 @@ Publish a standalone `e2e-skills` repository that supports:
 ## Repository Layout
 
 ```text
-e2e-skills/
+e2enetworks-skills/
 ├── plugins/e2e/
 │   ├── .claude-plugin/plugin.json
 │   ├── hooks/
@@ -25,11 +25,14 @@ e2e-skills/
 
 ## Publishing Guide
 
-1. Create a new GitHub repository named `e2e-skills`.
+Official repository:
+- `https://github.com/e2enetworks-oss/e2enetworks-skills`
+
+1. Use the official GitHub repository above for this skill pack.
 2. Copy this folder’s contents into that repository root.
 3. Update plugin metadata:
 - edit `plugins/e2e/.claude-plugin/plugin.json`
-- replace `https://github.com/REPLACE_ME/e2e-skills` with your actual GitHub URL
+- ensure the `repository` field matches `https://github.com/e2enetworks-oss/e2enetworks-skills`
 4. Make scripts executable:
 ```bash
 chmod +x scripts/install.sh
@@ -58,27 +61,25 @@ Note: `scripts/install.sh` installs the skill pack only. The currently published
 
 ## Curl Install Commands (for users)
 
-Replace `<OWNER>` with your GitHub org/user.
-
 Install both Codex skill + Claude plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<OWNER>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<OWNER>/e2e-skills.git --target all --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target all --force
 ```
 
 Install only Codex skill:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<OWNER>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<OWNER>/e2e-skills.git --target codex --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target codex --force
 ```
 
 Install only Claude plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<OWNER>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<OWNER>/e2e-skills.git --target claude --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target claude --force
 ```
 
 ## Claude Plugin Usage

@@ -7,7 +7,7 @@
     {
       "name": "use-e2e",
       "path": "skills/use-e2e/SKILL.md",
-      "description": "Use e2ectl for verify/install/configure flows, node list/create/delete operations, and e2e-skills publishing."
+      "description": "Use e2ectl for verify/install/configure flows, node list/create/delete operations, and e2enetworks-skills publishing."
     }
   ],
   "hooksDir": "hooks"

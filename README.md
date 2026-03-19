@@ -1,16 +1,20 @@
-# e2e-skills
+# e2enetworks-skills
 
 ## Installation Guide
 
 ### 1. Common skill pack install
 
-Replace `<ORG>` with your GitHub org or user.
+Official repository:
+
+```text
+https://github.com/e2enetworks-oss/e2enetworks-skills
+```
 
 Install the full skill pack:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target all --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target all --force
 ```
 
 If you already have this repo locally:
@@ -22,22 +26,22 @@ If you already have this repo locally:
 ### 2. OpenCode skill install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target opencode --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target opencode --force
 ```
 
 ### 3. Claude plugin install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target claude --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target claude --force
 ```
 
 ### 4. Codex skill install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target codex --force
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target codex --force
 ```
 
 ### 5. Installed paths

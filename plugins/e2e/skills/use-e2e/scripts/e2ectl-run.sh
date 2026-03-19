@@ -145,6 +145,9 @@ if [[ "$bin_explicit" == "false" ]]; then
 fi
 
 if [[ "$bin_path" == */* ]]; then
+  if [[ "$bin_path" != /* && -n "$cwd" ]]; then
+    bin_path="$cwd/$bin_path"
+  fi
   [[ -x "$bin_path" ]] || fail "--bin is not executable: $bin_path"
   bin_path="$(resolve_file_path "$bin_path")"
 else
