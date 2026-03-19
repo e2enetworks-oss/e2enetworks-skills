@@ -1,72 +1,108 @@
 # Agent Instructions: e2e Skills
 
-## Skills
+This repo ships one skill: `use-e2e`.
 
-This repository ships one `e2ectl`-based skill inside the existing `e2e` plugin wrapper.
+Use it for node management first. It also supports node actions, volumes, VPCs, and SSH keys.
 
-### Primary workflow
-1. Verify the CLI first:
-   ```bash
-   command -v e2ectl
-   e2ectl --help
-   ```
-2. If `e2ectl` is missing, install it and continue.
-   - Use npm as the default install path.
-   - For now, use `e2ectl` as the placeholder npm package name.
-   - Preferred placeholder command:
+## Fast Rules
+
+1. Resolve the CLI in this order:
+   - `hitesh-test`
+   - `e2ectl`
+   - if neither exists, ask:
+     `Install the npm package globally or in this project?`
+   - global:
      ```bash
-     npm i -g e2ectl
+     npm i -g hitesh-test
      ```
-   - If the environment prefers a local package install, use:
+   - project:
      ```bash
-     npm i e2ectl
-     npx e2ectl --help
+     npm i hitesh-test
+     npx hitesh-test --help
      ```
-   - After install, verify again with `command -v e2ectl` and `e2ectl --help`.
-3. Verify configuration before node actions:
-   ```bash
-   e2ectl config list
-   ```
-   `e2ectl` stores saved profiles in `~/.e2e/config.json`.
-   If saved profiles already exist, do not immediately ask for new credentials.
-   Ask whether to use an existing profile or add/import a new one.
-   - if an existing profile is chosen, prefer `e2ectl config set-default --alias <alias>` when needed
-   - if the chosen profile is missing project or location defaults, prompt for those fields and update them with `e2ectl config set-context`
-   - only ask for a full new credential set when no usable profile exists or the user explicitly wants a new profile
-   - if a new profile is needed, collect:
-     - alias
-     - api key
-     - auth token
-     - default project id
-     - location
-     Then add the profile with `e2ectl config add`.
-4. Install the skill pack into Codex or Claude with `scripts/install.sh` when working from another repo or machine.
-5. Use the skill for node lifecycle operations such as list, create, get details, and delete.
-6. For node creation, prompt the user for:
-   - node name
+2. Run `config list` before resource commands.
+3. If saved profiles exist, ask whether to use an existing profile or import a new one.
+4. If no usable config exists, ask:
+   - use a config file already on this machine
+   - upload a config file
+   Prefer file import.
+5. After choosing or importing a profile, check that `default project id` and `default location` are present in the config itself.
+6. If either one is missing, prompt for both:
+   - project id
    - location
-   - project
-   Use defaults as suggestions only:
-   - node name default: `node-01`
-   - location default: current configured profile location, otherwise `Delhi`
-   - project default: current configured profile project ID when available
-7. For user-facing output:
-   - do not show raw API calls
-   - do not dump raw JSON responses by default
-   - parse CLI JSON internally and present concise summaries, tables, or next-step prompts instead
-   - only show raw JSON when the user explicitly asks for it
+   Then update the profile with `config set-context` before any resource command.
+7. If a command returns `Profile "<alias>" was not found`, stop and resolve config before trying more resource commands.
+8. Do not spend tokens on repeated `--help` for commands covered by this skill. Use the documented commands directly. Only use `--help` when a command is unknown, has changed, or fails unexpectedly.
+9. Keep output short and natural. Do not show raw API calls, secrets, or raw JSON unless the user asks.
+10. Node work is primary:
+   - list
+   - get
+   - catalog
+   - create
+   - upload and attach SSH key
+   - attach VPC
+   - attach and mount a volume
+   - SSH into a ready node
+   - deploy frontend or backend services
+   - delete
+   - actions
+   - verify actual node status after actions
+11. Other supported areas:
+   - volumes
+   - VPCs
+   - SSH keys
+12. For SSH or deploy tasks, ask only for what is missing:
+   - alias
+   - node id or public IP
+   - SSH key id, or SSH key label and public key file path
+   - volume id and mount path when storage is involved
+   - private key path
+   - repo URL or local app path
+   - app type: frontend or backend
+   - env vars, port, or start command if they are not obvious
+   - whether a new empty volume may be formatted
+   Default the SSH user to `root`. Only ask for SSH user if the user explicitly wants a different one or `root` fails.
+   Suggest `/data` when a mount path is needed and none was given.
+   Suggest `~/.ssh/id_ed25519.pub` when a public key file path is needed and none was given.
+   Ask for the SSH key label before upload. Suggest `node-access` if the user has no preference.
+13. If the user says things like:
+   - deploy my server
+   - run something on the node
+   - check what is running on the node
+   - fix my frontend or backend on the node
+   treat that as an SSH-into-node workflow.
+14. After `node action power-off`, `node action power-on`, or similar node actions, do not stop at the action result.
+   Re-check the node with `node get <node-id>` or `node list` and show the actual current node status.
+15. Basic Codex CLI UX rules:
+   - start with a one-line summary of the step being taken
+   - ask one short question at a time
+   - if multiple values are missing for one task, ask for them in one compact prompt
+   - show lists as compact summaries with id, name, status, and public IP when available
+   - show node details as a short readable summary, not raw fields
+   - after success, say what happened and the next useful step
+   - after errors, explain the issue in simple language and give the next fix
+16. Common engineering workflows to support:
+   - fleet inventory and status checks
+   - new node provisioning
+   - SSH access setup
+   - VPC setup and attach
+   - volume create, attach, and mount
+   - frontend or backend deployment on a node
+   - app update or redeploy on an existing node
+   - service checks or incident triage on a running node
+   - safe power cycle with status verification
+   - save-image before risky changes
+   - safe node retirement
+17. Treat `node delete` as an interactive confirmed action.
+   - ask for confirmation once
+   - run it in an interactive terminal when possible
+   - do not assume a non-interactive delete command will complete
 
-### Available skills
-- `use-e2e`: set up, run, configure, publish, and maintain `e2ectl` workflows.  
-  File: `plugins/e2e/skills/use-e2e/SKILL.md`
+## Install Paths
 
-### Trigger rules
-- Use `use-e2e` when tasks involve `e2ectl` verification, installation, configuration, node list/create/delete flows, skill packaging, installer updates, smoke tests, publishing, or incident handling for this repo.
-- Load only the needed reference file from `plugins/e2e/skills/use-e2e/references/`.
+- Codex: `~/.codex/skills/use-e2e`
+- Claude: `~/.claude/plugins/e2e`
 
-### Install paths
-- Codex skill install target: `$CODEX_HOME/skills/use-e2e` (default `~/.codex/skills/use-e2e`)
-- Claude plugin install target: `~/.claude/plugins/e2e`
+## Skill File
 
-### Installer
-- Use `scripts/install.sh` for local or curl-based installs.
+- `plugins/e2e/skills/use-e2e/SKILL.md`

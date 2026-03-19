@@ -19,26 +19,34 @@ If you already have this repo locally:
 ./scripts/install.sh --target all --repo-dir .
 ```
 
-### 2. Claude plugin install
+### 2. OpenCode skill install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
+  bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target opencode --force
+```
+
+### 3. Claude plugin install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
   bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target claude --force
 ```
 
-### 3. Codex skill install
+### 4. Codex skill install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/<ORG>/e2e-skills/main/scripts/install.sh | \
   bash -s -- --repo-url https://github.com/<ORG>/e2e-skills.git --target codex --force
 ```
 
-### 4. Installed paths
+### 5. Installed paths
 
+- OpenCode: `~/.config/opencode/skills/use-e2e`
 - Codex: `~/.codex/skills/use-e2e`
 - Claude: `~/.claude/plugins/e2e`
 
-### 5. Other AI agent CLI examples
+### 6. Other AI agent CLI examples
 
 OpenCode example:
 

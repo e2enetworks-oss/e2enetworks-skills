@@ -3,11 +3,11 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Install e2e-skills into Codex and/or Claude plugin directories.
+Install e2e-skills into Codex, Claude, and/or OpenCode directories.
 This script installs the skill pack only. It does not install the e2ectl CLI.
 
 Usage:
-  install.sh [--target codex|claude|all] [--repo-url <git-url>] [--repo-dir <path>] [--codex-home <path>] [--claude-home <path>] [--force]
+  install.sh [--target codex|claude|opencode|all] [--repo-url <git-url>] [--repo-dir <path>] [--codex-home <path>] [--claude-home <path>] [--opencode-home <path>] [--force]
 
 Options:
   --target      Install target (default: all)
@@ -15,13 +15,14 @@ Options:
   --repo-dir    Local repo directory containing plugins/e2e
   --codex-home  Codex home (default: $CODEX_HOME or ~/.codex)
   --claude-home Claude home (default: $CLAUDE_HOME or ~/.claude)
+  --opencode-home OpenCode config dir (default: $OPENCODE_HOME or ~/.config/opencode)
   --force       Overwrite existing installs
   -h, --help    Show this help
 
 Examples:
   ./scripts/install.sh --target all
   curl -fsSL https://raw.githubusercontent.com/<OWNER>/e2e-skills/main/scripts/install.sh | \
-    bash -s -- --repo-url https://github.com/<OWNER>/e2e-skills.git --target codex
+    bash -s -- --repo-url https://github.com/<OWNER>/e2e-skills.git --target opencode
 EOF
 }
 
@@ -35,6 +36,7 @@ repo_url=""
 repo_dir=""
 codex_home="${CODEX_HOME:-$HOME/.codex}"
 claude_home="${CLAUDE_HOME:-$HOME/.claude}"
+opencode_home="${OPENCODE_HOME:-$HOME/.config/opencode}"
 force="false"
 
 while [[ $# -gt 0 ]]; do
@@ -59,6 +61,10 @@ while [[ $# -gt 0 ]]; do
       claude_home="${2:-}"
       shift 2
       ;;
+    --opencode-home)
+      opencode_home="${2:-}"
+      shift 2
+      ;;
     --force)
       force="true"
       shift
@@ -74,8 +80,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$target" in
-  codex|claude|all) ;;
-  *) fail "--target must be one of: codex, claude, all" ;;
+  codex|claude|opencode|all) ;;
+  *) fail "--target must be one of: codex, claude, opencode, all" ;;
 esac
 
 copy_dir() {
@@ -135,6 +141,11 @@ if [[ "$target" == "claude" || "$target" == "all" ]]; then
   copy_dir "$plugin_src" "$claude_home/plugins/e2e"
 fi
 
+if [[ "$target" == "opencode" || "$target" == "all" ]]; then
+  copy_dir "$skill_src" "$opencode_home/skills/use-e2e"
+fi
+
 printf '\nDone.\n'
 printf 'Codex skills path:  %s\n' "$codex_home/skills/use-e2e"
 printf 'Claude plugin path: %s\n' "$claude_home/plugins/e2e"
+printf 'OpenCode skills path: %s\n' "$opencode_home/skills/use-e2e"

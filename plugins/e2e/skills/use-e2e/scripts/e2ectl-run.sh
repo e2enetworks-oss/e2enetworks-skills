@@ -4,10 +4,10 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  e2ectl-run.sh [--bin <path>] [--cwd <dir>] [--env-file <file>] [--output <file>] [--print-command] -- <e2ectl-args...>
+  e2ectl-run.sh [--bin <path>] [--cwd <dir>] [--env-file <file>] [--output <file>] [--print-command] -- <cli-args...>
 
 Options:
-  --bin             Binary or script to run (default: e2ectl)
+  --bin             Binary or script to run (default: auto-detect hitesh-test, then e2ectl)
   --cwd             Working directory to run in
   --env-file        Shell-compatible env file to source before running
   --output          File to write combined stdout/stderr to
@@ -26,12 +26,26 @@ fail() {
   exit 1
 }
 
-bin_path="e2ectl"
+bin_path="hitesh-test"
 cwd=""
 env_file=""
 output_file=""
 print_command="false"
 command_args=()
+
+resolve_default_bin() {
+  if command -v hitesh-test >/dev/null 2>&1; then
+    printf 'hitesh-test\n'
+    return 0
+  fi
+
+  if command -v e2ectl >/dev/null 2>&1; then
+    printf 'e2ectl\n'
+    return 0
+  fi
+
+  return 1
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -80,10 +94,16 @@ if [[ -n "$env_file" ]]; then
   [[ -f "$env_file" ]] || fail "--env-file does not exist: $env_file"
 fi
 
+if [[ -z "$bin_path" || "$bin_path" == "hitesh-test" ]]; then
+  if resolved_bin="$(resolve_default_bin)"; then
+    bin_path="$resolved_bin"
+  fi
+fi
+
 if [[ "$bin_path" == */* ]]; then
   [[ -x "$bin_path" ]] || fail "--bin is not executable: $bin_path"
 else
-  command -v "$bin_path" >/dev/null 2>&1 || fail "binary not found in PATH: $bin_path"
+  command -v "$bin_path" >/dev/null 2>&1 || fail "binary not found in PATH: $bin_path (also checked hitesh-test)"
 fi
 
 if [[ "$print_command" == "true" ]]; then

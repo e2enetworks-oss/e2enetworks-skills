@@ -1,118 +1,343 @@
 # Nodes
 
-## Purpose
-Use this guide for safe day-to-day node listing, inspection, creation, and deletion after the CLI and config are ready.
+In this file, `CLI` means the resolved command from `SKILL.md`.
 
-## Readiness Gate
-Before any node command:
+Do not use repeated `--help` calls for these workflows. Use these commands directly.
+
+## Core Node Commands
+
+List:
+
 ```bash
-e2ectl --help
-e2ectl config list
+CLI node list --alias <alias>
 ```
 
-If saved profiles already exist, ask whether to use an existing profile or add/import a new one before asking for credentials.
+Get:
 
-If the user selects an existing alias but it is missing project or location defaults, update that alias with `e2ectl config set-context`.
-
-If configuration is missing or unusable and there is no usable saved profile, prompt for every required field before continuing:
-- alias
-- api key
-- auth token
-- default project id
-- default location
-
-If configuration is usable and the user wants to create a node, prompt for these inputs before catalog discovery:
-- node name
-- location
-- project
-
-Suggested defaults:
-- node name: `node-01`
-- location: current configured profile location, otherwise `Delhi`
-- project: current configured profile project ID when available
-
-Use defaults only as suggestions. Let the user override them.
-
-## List Nodes
 ```bash
-e2ectl node list --json
+CLI node get <node-id> --alias <alias>
 ```
 
-If the active profile does not have the needed default project/location, use overrides:
+OS discovery:
+
 ```bash
-e2ectl node list --project-id <project-id> --location <location> --json
+CLI node catalog os --alias <alias>
 ```
 
-## Get Node Details
-```bash
-e2ectl node get <node-id> --json
-```
+Plan and image discovery:
 
-## Discover Valid Create Inputs
-List OS options first:
 ```bash
-e2ectl node catalog os --json
-```
-
-Then list valid plan and image combinations:
-```bash
-e2ectl node catalog plans \
+CLI node catalog plans \
+  --alias <alias> \
   --display-category "<display-category>" \
   --category "<category>" \
   --os "<os>" \
   --os-version "<os-version>" \
-  --project-id <project-id> \
-  --location <location> \
-  --json
+  --billing-type all
 ```
 
-If one valid OS row returns an unexpected response-shape error, summarize the failure and retry with another row instead of immediately concluding the API is unusable.
+Create:
 
-## Create a Node
-Create only after the user has selected the exact plan and image values returned by the catalog:
 ```bash
-e2ectl node create \
+CLI node create \
+  --alias <alias> \
   --name <node-name> \
-  --plan <full-plan-string> \
-  --image <image> \
-  --project-id <project-id> \
-  --location <location> \
-  --json
+  --plan <plan> \
+  --image <image>
 ```
 
-## Create Flow
-1. Verify CLI and config.
-2. Ask for node name. Suggested default: `node-01`.
-3. Ask for location. Suggested default: current configured profile location, otherwise `Delhi`.
-4. Ask for project. Suggested default: current configured profile project ID when available.
-5. If the requested location or project does not match the active profile, switch to or create the correct profile first.
-6. Show OS choices from `catalog os`.
-7. Show plan and image choices from `catalog plans`.
-8. Confirm the final create command once before launch.
+Create with committed billing:
 
-## Delete Policy
-- Always list or inspect the node first.
-- Always confirm with the user before running delete.
-- Use the exact node ID chosen by the user.
-
-## Delete Command
 ```bash
-e2ectl node delete <node-id> --project-id <project-id> --location <location> --json
+CLI node create \
+  --alias <alias> \
+  --name <node-name> \
+  --plan <plan> \
+  --image <image> \
+  --billing-type committed \
+  --committed-plan-id <committed-plan-id>
 ```
 
-## Delete Flow
-1. Run `e2ectl node list --json`.
-2. Confirm the target node ID with the user.
-3. State the exact delete command that will be executed.
-4. Run delete only after explicit approval.
+Delete:
 
-## Notes
-- Prefer `--json` when parsing CLI output.
-- Use the full `plan` string returned by the catalog, not the short SKU label.
-- `node create`, `node get`, `node list`, `node delete`, and `catalog plans` support `--project-id` and `--location` overrides.
-- List nodes before and after create to confirm the result.
-- Treat delete as irreversible unless the platform explicitly documents recovery.
-- Capture delete results for auditability when possible.
-- Do not show raw API calls or raw JSON by default; convert command results into readable user-facing output.
-- Show raw JSON only when the user explicitly asks for raw output.
-- Do not show API keys or bearer tokens in user-facing output.
+```bash
+CLI node delete <node-id> --alias <alias>
+```
+
+Delete may require an interactive confirmation prompt.
+If running in a non-interactive terminal, do not assume the delete has completed.
+
+## Node Actions
+
+Power off:
+
+```bash
+CLI node action power-off <node-id> --alias <alias>
+```
+
+Power on:
+
+```bash
+CLI node action power-on <node-id> --alias <alias>
+```
+
+Save image:
+
+```bash
+CLI node action save-image <node-id> --name <image-name> --alias <alias>
+```
+
+Attach VPC:
+
+```bash
+CLI node action vpc attach <node-id> --vpc-id <vpc-id> --alias <alias>
+```
+
+Attach volume:
+
+```bash
+CLI node action volume attach <node-id> --volume-id <volume-id> --alias <alias>
+```
+
+Attach SSH key:
+
+```bash
+CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <alias>
+```
+
+Do not use `node attach`.
+Use `node action ssh-key attach` directly.
+
+After any state-changing action, verify the actual node state:
+
+```bash
+CLI node get <node-id> --alias <alias>
+```
+
+If the user wants the current fleet view, follow with:
+
+```bash
+CLI node list --alias <alias>
+```
+
+Do not treat action `Status: done` as the final power state by itself.
+
+## Create Rules
+
+- ask for node name first
+- use catalog discovery before create
+- use exact `plan` and `image` values from catalog output
+- if committed billing is requested, use the exact committed plan id returned by catalog
+- if alias lookup fails, stop and resolve config before retrying
+- confirm once before delete, not before every read command
+- treat delete as an interactive confirmed action when the CLI prompts for confirmation
+
+## Common Node Workflows
+
+- inspect the current fleet with `node list`
+- inspect one node with `node get`
+- prepare a new node with `catalog os` and `catalog plans`
+- create a node with hourly or committed billing
+- upload SSH key if needed, then attach SSH key, VPC, or volume after create
+- SSH into a ready node
+- deploy a frontend or backend service
+- mount a data volume on a chosen path
+- power a node off or on
+- confirm the real node status after power actions
+- save a running node as an image
+- attach VPC, volume, or SSH key to an existing node
+- delete a node only after one confirmation
+- if delete is interactive, complete it in a TTY session
+
+## Common Engineering Workflows
+
+- fleet inventory and node health checks
+- node provisioning for a new app
+- SSH access setup for a new node
+- power cycle with final status verification
+- save-image before risky changes
+- app deploy or redeploy on a node
+- incident checks on an already running server
+- safe node retirement
+
+## Provision to Deploy
+
+Use this order for the common node lifecycle:
+
+1. `node catalog os`
+2. `node catalog plans`
+3. `node create`
+4. `ssh-key list`
+5. `ssh-key create` if needed
+6. `node action ssh-key attach`
+7. `node action vpc attach` if needed
+8. `node action volume attach` if needed
+9. `node get`
+10. SSH into the node after it is ready
+11. deploy the requested service
+
+For power actions:
+
+1. `node action power-off` or `node action power-on`
+2. `node get`
+3. `node list` if the user wants the refreshed fleet status
+
+Ask only for missing values:
+
+- alias
+- node name or node id
+- SSH key id, or SSH key label and public key file path
+- VPC id if needed
+- volume id and mount path if needed
+- private key path
+- repo URL or local app path
+- app type: frontend or backend
+
+Default the SSH user to `root`. Only ask for SSH user if the user explicitly gives another user or `root` fails.
+Suggest `/data` when a mount path is needed and none was provided.
+Suggest `~/.ssh/id_ed25519.pub` when a public key file path is needed and none was provided.
+Ask for the SSH key label before upload. Suggest `node-access` if the user has no preference.
+If the user says things like deploy my server, run something on the node, or check what is running on the node, treat that as an SSH and deploy workflow.
+
+## Upload and Attach SSH Key
+
+List keys first:
+
+```bash
+CLI ssh-key list --alias <alias>
+```
+
+If no keys exist, upload from file:
+
+```bash
+CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <alias>
+```
+
+Or upload from stdin:
+
+```bash
+cat ~/.ssh/id_ed25519.pub | CLI ssh-key create --label <key-label> --public-key-file - --alias <alias>
+```
+
+Attach the uploaded or existing key:
+
+```bash
+CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <alias>
+```
+
+Rules:
+
+- use `--label`, not `--name`
+- use `--public-key-file`, not `--key`
+- ask for the SSH key label before upload
+- prefer the public key file path over reading key contents into the prompt
+- if the user did not provide a public key path, suggest `~/.ssh/id_ed25519.pub`
+- if the user did not provide a label, suggest `node-access`
+- after upload, use the returned SSH key id for attach
+
+## SSH and Deploy
+
+Check that the node is ready and has a reachable public IP first.
+
+SSH:
+
+```bash
+ssh -i <private-key-path> <ssh-user>@<public-ip>
+```
+
+Default:
+
+```bash
+ssh -i <private-key-path> root@<public-ip>
+```
+
+Copy files when needed:
+
+```bash
+scp -i <private-key-path> -r <local-path> <ssh-user>@<public-ip>:<remote-path>
+```
+
+Default:
+
+```bash
+scp -i <private-key-path> -r <local-path> root@<public-ip>:<remote-path>
+```
+
+Deploy rules:
+
+- ask for app type: frontend or backend
+- ask for repo URL or local path if missing
+- ask for env vars, port, build command, or start command only if needed
+- prefer simple stable deploys over complex automation
+- after deploy, verify the process or port and summarize the result in natural language
+
+Common engineering uses:
+
+- deploy a new frontend
+- deploy a new backend
+- update an existing frontend or backend
+- inspect what is running on the server
+- fix a broken service after SSH login
+
+Power-action rules:
+
+- after `power-off` or `power-on`, always run `node get`
+- if the user asked to list nodes or see the current state, also run `node list`
+- show the node status from the follow-up command, not just the action result
+
+Delete rules:
+
+- inspect the node first with `node get`
+- ask for confirmation once
+- if the CLI prompts for confirmation, use an interactive terminal
+- after delete, refresh with `node list` when the user wants the updated fleet state
+
+## Attach and Mount Volume
+
+Attach first:
+
+```bash
+CLI node action volume attach <node-id> --volume-id <volume-id> --alias <alias>
+```
+
+Then inspect disks on the node. Do not guess the device path:
+
+```bash
+lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT
+```
+
+Create the mount path:
+
+```bash
+sudo mkdir -p <mount-path>
+```
+
+Format only if the volume is new, empty, and the user has allowed it:
+
+```bash
+sudo mkfs.ext4 /dev/<device>
+```
+
+Mount:
+
+```bash
+sudo mount /dev/<device> <mount-path>
+```
+
+Get the UUID:
+
+```bash
+sudo blkid /dev/<device>
+```
+
+Persist the mount with the UUID in `/etc/fstab`.
+
+## Output Rules
+
+- summarize in natural language
+- prefer tables or short bullet summaries
+- do not show raw JSON unless asked
+- after node actions, include the confirmed node status in the summary
+- for node lists, prefer id, name, status, and public IP
+- for node details, prefer id, name, status, plan, public IP, private IP, and created time
+- after create, attach, or delete, say the next useful step
