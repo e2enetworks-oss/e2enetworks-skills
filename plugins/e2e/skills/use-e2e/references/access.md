@@ -2,8 +2,8 @@
 
 In this file, `CLI` means:
 
-- `hitesh-test`, or
 - `e2ectl`, or
+- `hitesh-test`, or
 - `npx hitesh-test` after project-local install
 
 Do not use repeated `--help` calls for the commands listed here. Use these direct commands first.

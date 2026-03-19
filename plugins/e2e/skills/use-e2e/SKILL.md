@@ -11,8 +11,8 @@ Use this skill when the user wants E2E Networks infrastructure work.
 
 Use this order:
 
-- `hitesh-test`
 - `e2ectl`
+- `hitesh-test`
 - if neither exists, ask:
   - install globally
   - install in this project

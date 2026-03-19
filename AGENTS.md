@@ -7,8 +7,8 @@ Use it for node management first. It also supports node actions, volumes, VPCs, 
 ## Fast Rules
 
 1. Resolve the CLI in this order:
-   - `hitesh-test`
    - `e2ectl`
+   - `hitesh-test`
    - if neither exists, ask:
      `Install the npm package globally or in this project?`
    - global:

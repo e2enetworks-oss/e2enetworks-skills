@@ -7,7 +7,7 @@ Usage:
   e2ectl-run.sh [--bin <path>] [--cwd <dir>] [--env-file <file>] [--output <file>] [--print-command] -- <cli-args...>
 
 Options:
-  --bin             Binary or script to run (default: auto-detect hitesh-test, then e2ectl)
+  --bin             Binary or script to run (default: auto-detect e2ectl, then hitesh-test)
   --cwd             Working directory to run in
   --env-file        Shell-compatible env file to source before running
   --output          File to write combined stdout/stderr to
@@ -26,23 +26,60 @@ fail() {
   exit 1
 }
 
-bin_path="hitesh-test"
+bin_path=""
+bin_explicit="false"
 cwd=""
 env_file=""
 output_file=""
 print_command="false"
 command_args=()
 
-resolve_default_bin() {
-  if command -v hitesh-test >/dev/null 2>&1; then
-    printf 'hitesh-test\n'
+resolve_dir_path() {
+  (
+    cd "$1" >/dev/null 2>&1 || exit 1
+    pwd -P
+  )
+}
+
+resolve_file_path() {
+  local target_path="$1"
+  local target_dir=""
+
+  target_dir="$(dirname "$target_path")"
+  printf '%s/%s\n' "$(resolve_dir_path "$target_dir")" "$(basename "$target_path")"
+}
+
+resolve_named_bin() {
+  local bin_name="$1"
+  local search_cwd="${2:-}"
+  local local_bin=""
+
+  if command -v "$bin_name" >/dev/null 2>&1; then
+    command -v "$bin_name"
     return 0
   fi
 
-  if command -v e2ectl >/dev/null 2>&1; then
-    printf 'e2ectl\n'
-    return 0
+  if [[ -n "$search_cwd" ]]; then
+    local_bin="$search_cwd/node_modules/.bin/$bin_name"
+    if [[ -x "$local_bin" ]]; then
+      printf '%s\n' "$local_bin"
+      return 0
+    fi
   fi
+
+  return 1
+}
+
+resolve_default_bin() {
+  local candidate=""
+  local resolved_bin=""
+
+  for candidate in e2ectl hitesh-test; do
+    if resolved_bin="$(resolve_named_bin "$candidate" "$cwd")"; then
+      printf '%s\n' "$resolved_bin"
+      return 0
+    fi
+  done
 
   return 1
 }
@@ -51,6 +88,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --bin)
       bin_path="${2:-}"
+      bin_explicit="true"
       shift 2
       ;;
     --cwd)
@@ -88,22 +126,35 @@ done
 
 if [[ -n "$cwd" ]]; then
   [[ -d "$cwd" ]] || fail "--cwd does not exist: $cwd"
+  cwd="$(resolve_dir_path "$cwd")"
 fi
 
 if [[ -n "$env_file" ]]; then
   [[ -f "$env_file" ]] || fail "--env-file does not exist: $env_file"
+  env_file="$(resolve_file_path "$env_file")"
 fi
 
-if [[ -z "$bin_path" || "$bin_path" == "hitesh-test" ]]; then
+if [[ "$bin_explicit" == "false" ]]; then
   if resolved_bin="$(resolve_default_bin)"; then
     bin_path="$resolved_bin"
+  elif [[ -n "$cwd" ]]; then
+    fail "binary not found: checked e2ectl and hitesh-test in PATH and $cwd/node_modules/.bin"
+  else
+    fail "binary not found in PATH: checked e2ectl and hitesh-test"
   fi
 fi
 
 if [[ "$bin_path" == */* ]]; then
   [[ -x "$bin_path" ]] || fail "--bin is not executable: $bin_path"
+  bin_path="$(resolve_file_path "$bin_path")"
 else
-  command -v "$bin_path" >/dev/null 2>&1 || fail "binary not found in PATH: $bin_path (also checked hitesh-test)"
+  if resolved_bin="$(resolve_named_bin "$bin_path" "$cwd")"; then
+    bin_path="$resolved_bin"
+  elif [[ -n "$cwd" ]]; then
+    fail "binary not found: $bin_path (checked PATH and $cwd/node_modules/.bin)"
+  else
+    fail "binary not found in PATH: $bin_path"
+  fi
 fi
 
 if [[ "$print_command" == "true" ]]; then
@@ -114,17 +165,28 @@ if [[ "$print_command" == "true" ]]; then
   printf '\n' >&2
 fi
 
+load_env_file() {
+  local source_status=0
+
+  [[ -n "$env_file" ]] || return 0
+
+  set -a
+  # shellcheck disable=SC1090
+  . "$env_file" || source_status=$?
+  set +a
+
+  if [[ $source_status -ne 0 ]]; then
+    printf 'Error: failed to load --env-file: %s\n' "$env_file" >&2
+    return "$source_status"
+  fi
+}
+
 runner() {
   if [[ -n "$cwd" ]]; then
-    cd "$cwd"
+    cd "$cwd" || return $?
   fi
 
-  if [[ -n "$env_file" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "$env_file"
-    set +a
-  fi
+  load_env_file || return $?
 
   "$bin_path" "${command_args[@]}"
 }
