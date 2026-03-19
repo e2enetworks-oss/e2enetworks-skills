@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/
   bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target opencode --force
 ```
 
-### 3. Claude plugin install
+### 3. Claude skill install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
@@ -48,7 +48,9 @@ curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/
 
 - OpenCode: `~/.config/opencode/skills/use-e2e`
 - Codex: `~/.codex/skills/use-e2e`
-- Claude: `~/.claude/plugins/e2e`
+- Claude: `~/.claude/skills/use-e2e`
+
+Claude Code currently discovers local skills from `~/.claude/skills/`. If Claude is already running, restart it after install so it reloads the new skill.
 
 ### 6. Other AI agent CLI examples
 

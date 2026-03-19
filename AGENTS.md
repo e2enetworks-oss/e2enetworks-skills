@@ -105,7 +105,7 @@ Temporary release note:
 ## Install Paths
 
 - Codex: `~/.codex/skills/use-e2e`
-- Claude: `~/.claude/plugins/e2e`
+- Claude: `~/.claude/skills/use-e2e`
 
 ## Skill File
 

@@ -3,7 +3,7 @@
 ## Objective
 Publish a standalone `e2enetworks-skills` repository that supports:
 1. Codex skill installation with one `curl` command
-2. Claude plugin installation from the same repo
+2. Claude skill installation from the same repo
 3. a workflow where the `e2ectl` CLI is published separately, then verified and used by agents for node operations
 
 ## Repository Layout
@@ -30,7 +30,7 @@ Official repository:
 
 1. Use the official GitHub repository above for this skill pack.
 2. Copy this folder’s contents into that repository root.
-3. Update plugin metadata:
+3. Update Claude metadata:
 - edit `plugins/e2e/.claude-plugin/plugin.json`
 - ensure the `repository` field matches `https://github.com/e2enetworks-oss/e2enetworks-skills`
 4. Make scripts executable:
@@ -65,7 +65,7 @@ Note:
 
 ## Curl Install Commands (for users)
 
-Install both Codex skill + Claude plugin:
+Install both Codex skill + Claude skill:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
@@ -79,27 +79,22 @@ curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/
   bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target codex --force
 ```
 
-Install only Claude plugin:
+Install only Claude skill:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
   bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target claude --force
 ```
 
-## Claude Plugin Usage
+## Claude Skill Usage
 
-After install, plugin files are placed at:
+After install, skill files are placed at:
 
 ```text
-~/.claude/plugins/e2e
+~/.claude/skills/use-e2e
 ```
 
-The shipped plugin contains:
-- `.claude-plugin/plugin.json`
-- `skills/use-e2e`
-- `hooks/` for optional future automation hooks
-
-If Claude is already running, restart Claude so it reloads plugin files.
+Current Claude Code builds discover local skills from `~/.claude/skills`. If Claude is already running, restart it so it reloads skill files.
 
 ## Codex Skill Usage
 
