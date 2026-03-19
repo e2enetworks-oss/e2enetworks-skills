@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Install e2enetworks-skills into Codex, Claude, and/or OpenCode directories.
+Install e2enetworks-skills into Codex, Claude Code, and/or OpenCode directories.
 This script installs the skill pack only. It does not install the e2ectl CLI.
 
 Usage:
@@ -128,17 +128,15 @@ else
 fi
 
 skill_src="$source_repo/plugins/e2e/skills/use-e2e"
-plugin_src="$source_repo/plugins/e2e"
 
 [[ -d "$skill_src" ]] || fail "missing skill source: $skill_src"
-[[ -d "$plugin_src" ]] || fail "missing plugin source: $plugin_src"
 
 if [[ "$target" == "codex" || "$target" == "all" ]]; then
   copy_dir "$skill_src" "$codex_home/skills/use-e2e"
 fi
 
 if [[ "$target" == "claude" || "$target" == "all" ]]; then
-  copy_dir "$plugin_src" "$claude_home/plugins/e2e"
+  copy_dir "$skill_src" "$claude_home/skills/use-e2e"
 fi
 
 if [[ "$target" == "opencode" || "$target" == "all" ]]; then
@@ -147,5 +145,5 @@ fi
 
 printf '\nDone.\n'
 printf 'Codex skills path:  %s\n' "$codex_home/skills/use-e2e"
-printf 'Claude plugin path: %s\n' "$claude_home/plugins/e2e"
+printf 'Claude skills path: %s\n' "$claude_home/skills/use-e2e"
 printf 'OpenCode skills path: %s\n' "$opencode_home/skills/use-e2e"

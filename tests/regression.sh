@@ -50,6 +50,32 @@ test_install_urls() {
   pass "install URLs stay pinned to the official repository"
 }
 
+test_claude_install_path() {
+  local tmp_dir=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  claude_home="$tmp_dir/.claude"
+
+  "$repo_root/scripts/install.sh" --target claude --repo-dir "$repo_root" --claude-home "$claude_home" --force >/dev/null
+
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install to create $claude_home/skills/use-e2e/SKILL.md"
+  [[ ! -e "$claude_home/plugins/e2e" ]] || fail "expected Claude install not to write legacy plugin path $claude_home/plugins/e2e"
+
+  rm -rf "$tmp_dir"
+
+  pass "Claude installs into the direct skills directory"
+}
+
+test_claude_skill_allowed_tools() {
+  local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
+
+  grep -F -q 'allowed-tools: Read, Grep, Glob, Bash(e2ectl *), Bash(hitesh-test *), Bash(npx e2ectl *), Bash(npx hitesh-test *)' "$skill_file" || \
+    fail "expected Claude skill to pre-allow the e2ectl and hitesh-test command patterns"
+
+  pass "Claude skill pre-allows the E2E CLI command patterns"
+}
+
 test_relative_bin_with_cwd() {
   local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
   local tmp_dir=""
@@ -161,6 +187,8 @@ test_bad_env_file_fails_fast() {
 
 main() {
   test_install_urls
+  test_claude_install_path
+  test_claude_skill_allowed_tools
   test_relative_bin_with_cwd
   test_local_cli_beats_global_cli_under_cwd
   test_relative_env_file_with_cwd

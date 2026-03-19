@@ -1,6 +1,7 @@
 ---
 name: use-e2e
 description: Manage E2E Networks resources with the published npm CLI. Nodes are the main task. Also handle node actions, volumes, VPCs, and SSH keys with short natural-language output.
+allowed-tools: Read, Grep, Glob, Bash(e2ectl *), Bash(hitesh-test *), Bash(npx e2ectl *), Bash(npx hitesh-test *)
 ---
 
 # use-e2e
