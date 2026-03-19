@@ -180,3 +180,6 @@ Current published npm package:
 ```bash
 npm i -g hitesh-test
 ```
+
+This package is temporary and used only for pre-release testing.
+Before the skill pack is made public, switch the docs and skill instructions to depend only on the official published `e2ectl` package.

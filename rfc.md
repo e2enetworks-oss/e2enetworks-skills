@@ -52,12 +52,16 @@ git push origin v0.1.0
 
 ## Release Order
 
-1. Publish the CLI to npm.
-2. Verify the published package installs and responds to `--help`.
-3. Install or update this skill pack in the target agent environment.
-4. Use the skill for `node list`, `node create`, `node get`, and confirmed `node delete` flows.
+1. Publish the official `e2ectl` CLI to npm.
+2. Verify the published `e2ectl` package installs and responds to `--help`.
+3. Remove temporary `hitesh-test` fallback/install references from the skill pack before public release.
+4. Install or update this skill pack in the target agent environment.
+5. Use the skill for `node list`, `node create`, `node get`, and confirmed `node delete` flows.
 
-Note: `scripts/install.sh` installs the skill pack only. The currently published npm package is `hitesh-test`.
+Note:
+- `scripts/install.sh` installs the skill pack only.
+- `hitesh-test` is a temporary pre-release testing package.
+- Before the skill pack is made public, the docs and skill instructions should depend only on the official published `e2ectl` package.
 
 ## Curl Install Commands (for users)
 

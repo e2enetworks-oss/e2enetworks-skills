@@ -79,9 +79,92 @@ test_relative_bin_with_cwd() {
   pass "explicit relative --bin resolves against --cwd"
 }
 
+test_local_cli_beats_global_cli_under_cwd() {
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local tmp_dir=""
+  local project_dir=""
+  local global_dir=""
+  local output=""
+
+  tmp_dir="$(mktemp -d)"
+  project_dir="$tmp_dir/project"
+  global_dir="$tmp_dir/global"
+  mkdir -p "$project_dir/node_modules/.bin" "$global_dir"
+
+  printf '%s\n' '#!/usr/bin/env bash' 'echo LOCAL_HITESH' > "$project_dir/node_modules/.bin/hitesh-test"
+  chmod +x "$project_dir/node_modules/.bin/hitesh-test"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo GLOBAL_E2ECTL' > "$global_dir/e2ectl"
+  chmod +x "$global_dir/e2ectl"
+
+  output="$(PATH="$global_dir:/usr/bin:/bin:/usr/sbin:/sbin" "$script_path" --cwd "$project_dir" -- noop)"
+
+  [[ "$output" == "LOCAL_HITESH" ]] || fail "expected project-local CLI to beat global CLI under --cwd, got: $output"
+
+  rm -rf "$tmp_dir"
+
+  pass "project-local CLI beats global CLI when --cwd is set"
+}
+
+test_relative_env_file_with_cwd() {
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local tmp_dir=""
+  local project_dir=""
+  local source_dir=""
+  local output=""
+
+  tmp_dir="$(mktemp -d)"
+  project_dir="$tmp_dir/project"
+  source_dir="$tmp_dir/source"
+  mkdir -p "$project_dir" "$source_dir"
+  printf 'EXPORTED_FROM_ENV=from-file\n' > "$source_dir/test.env"
+
+  pushd "$source_dir" >/dev/null
+  output="$("$script_path" --env-file ./test.env --cwd "$project_dir" --bin bash -- -lc 'printf "%s\n" "$EXPORTED_FROM_ENV"')"
+  popd >/dev/null
+
+  [[ "$output" == "from-file" ]] || fail "expected relative --env-file under --cwd to export from-file, got: $output"
+
+  rm -rf "$tmp_dir"
+
+  pass "relative --env-file resolves before changing into --cwd"
+}
+
+test_bad_env_file_fails_fast() {
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local tmp_dir=""
+  local project_dir=""
+  local source_dir=""
+  local output=""
+  local rc=0
+
+  tmp_dir="$(mktemp -d)"
+  project_dir="$tmp_dir/project"
+  source_dir="$tmp_dir/source"
+  mkdir -p "$project_dir" "$source_dir"
+  printf 'definitely_not_a_command\n' > "$source_dir/bad.env"
+
+  pushd "$source_dir" >/dev/null
+  set +e
+  output="$("$script_path" --env-file ./bad.env --cwd "$project_dir" --bin bash -- -lc 'echo SHOULD_NOT_RUN' 2>&1)"
+  rc=$?
+  set -e
+  popd >/dev/null
+
+  [[ "$rc" != "0" ]] || fail "expected bad env file to fail fast, but command exited 0"
+  [[ "$output" == *"Error: failed to load --env-file:"* ]] || fail "expected bad env file failure message, got: $output"
+  [[ "$output" != *"SHOULD_NOT_RUN"* ]] || fail "wrapped command ran despite env-file failure: $output"
+
+  rm -rf "$tmp_dir"
+
+  pass "bad --env-file aborts before running the wrapped command"
+}
+
 main() {
   test_install_urls
   test_relative_bin_with_cwd
+  test_local_cli_beats_global_cli_under_cwd
+  test_relative_env_file_with_cwd
+  test_bad_env_file_fails_fast
 }
 
 main "$@"

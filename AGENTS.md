@@ -6,6 +6,10 @@ Use it for node management first. It also supports node actions, volumes, VPCs, 
 
 ## Fast Rules
 
+Temporary release note:
+- `hitesh-test` is a temporary pre-release npm package used only for testing until the official `e2ectl` package is published.
+- Before this skill pack is made public, remove `hitesh-test` fallback/install references and rely solely on the official `e2ectl` package.
+
 1. Resolve the CLI in this order:
    - `e2ectl`
    - `hitesh-test`

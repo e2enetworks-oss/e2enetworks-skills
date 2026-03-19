@@ -54,17 +54,17 @@ resolve_named_bin() {
   local search_cwd="${2:-}"
   local local_bin=""
 
-  if command -v "$bin_name" >/dev/null 2>&1; then
-    command -v "$bin_name"
-    return 0
-  fi
-
   if [[ -n "$search_cwd" ]]; then
     local_bin="$search_cwd/node_modules/.bin/$bin_name"
     if [[ -x "$local_bin" ]]; then
       printf '%s\n' "$local_bin"
       return 0
     fi
+  fi
+
+  if command -v "$bin_name" >/dev/null 2>&1; then
+    command -v "$bin_name"
+    return 0
   fi
 
   return 1
@@ -74,8 +74,17 @@ resolve_default_bin() {
   local candidate=""
   local resolved_bin=""
 
+  if [[ -n "$cwd" ]]; then
+    for candidate in e2ectl hitesh-test; do
+      if [[ -x "$cwd/node_modules/.bin/$candidate" ]]; then
+        printf '%s\n' "$cwd/node_modules/.bin/$candidate"
+        return 0
+      fi
+    done
+  fi
+
   for candidate in e2ectl hitesh-test; do
-    if resolved_bin="$(resolve_named_bin "$candidate" "$cwd")"; then
+    if resolved_bin="$(resolve_named_bin "$candidate")"; then
       printf '%s\n' "$resolved_bin"
       return 0
     fi

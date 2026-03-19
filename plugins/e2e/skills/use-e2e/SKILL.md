@@ -7,6 +7,11 @@ description: Manage E2E Networks resources with the published npm CLI. Nodes are
 
 Use this skill when the user wants E2E Networks infrastructure work.
 
+Temporary release note:
+- `hitesh-test` is a temporary pre-release testing package.
+- The long-term public dependency is the official `e2ectl` package.
+- Before this skill pack is published publicly, remove `hitesh-test` fallback/install references and rely solely on `e2ectl`.
+
 ## 1. Resolve CLI
 
 Use this order:

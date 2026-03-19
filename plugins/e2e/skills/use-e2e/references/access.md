@@ -1,5 +1,9 @@
 # Access
 
+Temporary release note:
+- `hitesh-test` is temporary and exists only for pre-release testing.
+- Before public release of this skill pack, remove `hitesh-test` fallback/install references and depend only on the official published `e2ectl` package.
+
 In this file, `CLI` means:
 
 - `e2ectl`, or
@@ -28,6 +32,8 @@ Project:
 npm i hitesh-test
 npx hitesh-test --help
 ```
+
+Remove the temporary package instructions above before public release, once `e2ectl` is published.
 
 ## Config
 
