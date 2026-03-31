@@ -175,7 +175,17 @@ Do not use:
 
 ## Publish Note
 
-Current published npm package:
+Testing source of truth:
+
+```bash
+git clone --depth 1 --branch develop https://github.com/e2enetworks-oss/e2ectl.git /tmp/e2ectl-develop
+cd /tmp/e2ectl-develop
+npm install
+make build
+node dist/app/index.js config list
+```
+
+Current fallback npm package:
 
 ```bash
 npm i -g hitesh-test

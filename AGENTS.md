@@ -6,14 +6,23 @@ Use it for node management first. It also supports node actions, volumes, VPCs, 
 
 ## Fast Rules
 
-Temporary release note:
-- `hitesh-test` is a temporary pre-release npm package used only for testing until the official `e2ectl` package is published.
+Temporary testing note:
+- For testing, the source of truth is `https://github.com/e2enetworks-oss/e2ectl` on branch `develop`.
+- Clone and run that repo before falling back to installed packages.
+- `hitesh-test` is a temporary pre-release npm package used only as fallback testing coverage until the official `e2ectl` package is published.
 - Before this skill pack is made public, remove `hitesh-test` fallback/install references and rely solely on the official `e2ectl` package.
 
 1. Resolve the CLI in this order:
-   - `e2ectl`
-   - `hitesh-test`
-   - if neither exists, ask:
+   - existing local `e2ectl` repo checkout on `develop`
+   - clone `https://github.com/e2enetworks-oss/e2ectl.git` branch `develop`
+   - `npm install`
+   - `make build`
+   - `node dist/app/index.js config list`
+   - use `node dist/app/index.js` for later commands from that checkout
+   - if repo bootstrap is not possible or the user explicitly wants package testing:
+     - `e2ectl`
+     - `hitesh-test`
+   - if neither package CLI exists, ask:
      `Install the npm package globally or in this project?`
    - global:
      ```bash
@@ -24,6 +33,7 @@ Temporary release note:
      npm i hitesh-test
      npx hitesh-test --help
      ```
+   - `npm run dev -- <cli-args...>` is acceptable for local testing only when the cloned repo has dependencies installed but `dist/` has not been built yet
 2. Run `config list` before resource commands.
 3. If saved profiles exist, ask whether to use an existing profile or import a new one.
 4. If no usable config exists, ask:
@@ -101,11 +111,15 @@ Temporary release note:
    - ask for confirmation once
    - run it in an interactive terminal when possible
    - do not assume a non-interactive delete command will complete
+18. The full provision-deploy-SSL flow should run without extra permission prompts.
+   All needed tools are pre-approved: ssh, scp, curl, apt-get, certbot, nginx, systemctl, dig, ln, rm, mkdir, sleep, kill, which, ls, cat — in addition to git, npm, make, node, and e2ectl commands.
 
 ## Install Paths
 
-- Codex: `~/.codex/skills/use-e2e`
-- Claude: `~/.claude/skills/use-e2e`
+- Global Codex: `~/.codex/skills/use-e2e`
+- Global Claude: `~/.claude/skills/use-e2e`
+- Project Codex: `.codex/skills/use-e2e`
+- Project Claude: `.claude/skills/use-e2e`
 
 ## Skill File
 

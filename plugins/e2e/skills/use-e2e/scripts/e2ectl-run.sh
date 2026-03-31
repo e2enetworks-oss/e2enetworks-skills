@@ -7,7 +7,7 @@ Usage:
   e2ectl-run.sh [--bin <path>] [--cwd <dir>] [--env-file <file>] [--output <file>] [--print-command] -- <cli-args...>
 
 Options:
-  --bin             Binary or script to run (default: auto-detect e2ectl, then hitesh-test)
+  --bin             Binary or script to run (default: auto-detect built e2ectl repo checkout, then e2ectl, then hitesh-test)
   --cwd             Working directory to run in
   --env-file        Shell-compatible env file to source before running
   --output          File to write combined stdout/stderr to
@@ -16,6 +16,7 @@ Options:
 
 Examples:
   ./e2ectl-run.sh -- --help
+  ./e2ectl-run.sh --cwd /tmp/e2ectl-develop -- config list
   ./e2ectl-run.sh --cwd /workspace/app --output .artifacts/run.log -- test smoke
   ./e2ectl-run.sh --bin ./bin/e2ectl --env-file .env.local -- status
 EOF
@@ -70,11 +71,28 @@ resolve_named_bin() {
   return 1
 }
 
+resolve_repo_checkout_bin() {
+  local search_cwd="$1"
+  local package_json="$search_cwd/package.json"
+
+  [[ -f "$package_json" ]] || return 1
+  grep -Eq '"name"[[:space:]]*:[[:space:]]*"e2ectl"' "$package_json" || return 1
+  [[ -f "$search_cwd/dist/app/index.js" ]] || return 1
+
+  printf '%s\n' "$search_cwd/dist/app/index.js"
+  return 0
+}
+
 resolve_default_bin() {
   local candidate=""
   local resolved_bin=""
 
   if [[ -n "$cwd" ]]; then
+    if resolved_bin="$(resolve_repo_checkout_bin "$cwd")"; then
+      printf '%s\n' "$resolved_bin"
+      return 0
+    fi
+
     for candidate in e2ectl hitesh-test; do
       if [[ -x "$cwd/node_modules/.bin/$candidate" ]]; then
         printf '%s\n' "$cwd/node_modules/.bin/$candidate"
@@ -147,7 +165,7 @@ if [[ "$bin_explicit" == "false" ]]; then
   if resolved_bin="$(resolve_default_bin)"; then
     bin_path="$resolved_bin"
   elif [[ -n "$cwd" ]]; then
-    fail "binary not found: checked e2ectl and hitesh-test in PATH and $cwd/node_modules/.bin"
+    fail "binary not found: checked $cwd/dist/app/index.js, e2ectl and hitesh-test in PATH, and $cwd/node_modules/.bin"
   else
     fail "binary not found in PATH: checked e2ectl and hitesh-test"
   fi
@@ -157,7 +175,11 @@ if [[ "$bin_path" == */* ]]; then
   if [[ "$bin_path" != /* && -n "$cwd" ]]; then
     bin_path="$cwd/$bin_path"
   fi
-  [[ -x "$bin_path" ]] || fail "--bin is not executable: $bin_path"
+  if [[ "$bin_path" == *.js ]]; then
+    [[ -f "$bin_path" ]] || fail "--bin JavaScript entrypoint does not exist: $bin_path"
+  else
+    [[ -x "$bin_path" ]] || fail "--bin is not executable: $bin_path"
+  fi
   bin_path="$(resolve_file_path "$bin_path")"
 else
   if resolved_bin="$(resolve_named_bin "$bin_path" "$cwd")"; then
@@ -199,6 +221,11 @@ runner() {
   fi
 
   load_env_file || return $?
+
+  if [[ "$bin_path" == *.js ]]; then
+    node "$bin_path" "${command_args[@]}"
+    return $?
+  fi
 
   "$bin_path" "${command_args[@]}"
 }

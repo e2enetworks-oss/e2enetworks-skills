@@ -1,83 +1,89 @@
-# e2enetworks-skills
+# E2E Networks Skills
 
-## Installation Guide
+Agent skill for [E2E Networks](https://e2enetworks.com), following the [Agent Skills](https://agentskills.io) format.
 
-### 1. Common skill pack install
+## Installation
 
-Official repository:
+```bash
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | bash
+```
+
+You can also install via [skills.sh](https://skills.sh):
+
+```bash
+npx skills add e2enetworks-oss/e2enetworks-skills
+```
+
+Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run the installer again to update.
+
+### Claude Code plugin marketplace
+
+```
+/plugin marketplace add e2enetworks-oss/e2enetworks-skills
+/plugin install e2e@e2enetworks-skills
+```
+
+## Skill surface
+
+This repo ships one installable skill:
+
+- [`use-e2e`](plugins/e2e/skills/use-e2e/SKILL.md)
+
+`use-e2e` is node-first. Intent routing is defined in `SKILL.md`, and execution details are split into action-oriented references.
+
+## Workflow coverage
+
+`use-e2e` covers:
+
+- Node provisioning and lifecycle
+- SSH access and key management
+- Volume create, attach, and mount
+- VPC setup and attachment
+- Frontend and backend deployment
+- App update and redeploy
+- Service checks and incident triage
+- Safe power cycle with status verification
+- Node retirement and cleanup
+
+## Repository structure
 
 ```text
-https://github.com/e2enetworks-oss/e2enetworks-skills
+e2enetworks-skills/
+├── plugins/e2e/
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   ├── hooks/
+│   └── skills/
+│       └── use-e2e/
+│           ├── SKILL.md
+│           ├── scripts/
+│           │   └── e2ectl-run.sh
+│           └── references/
+│               ├── access.md
+│               ├── maintenance.md
+│               └── nodes.md
+├── scripts/
+│   └── install.sh
+├── tests/
+│   └── regression.sh
+├── AGENTS.md
+├── CLAUDE.md
+└── rfc.md
 ```
 
-Install the full skill pack:
+## Development notes
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target all --force
-```
+- Keep `SKILL.md` concise and routing-focused.
+- Keep workflow behavior in action-oriented references.
+- Keep deep schema and reference material separate from runbooks.
+- Prefer canonical CLI syntax in examples.
+- Keep CLI bootstrap logic in `scripts/e2ectl-run.sh` for consistent resolution handling.
 
-If you already have this repo locally:
+## References
 
-```bash
-./scripts/install.sh --target all --repo-dir .
-```
-
-### 2. OpenCode skill install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target opencode --force
-```
-
-### 3. Claude skill install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target claude --force
-```
-
-### 4. Codex skill install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --repo-url https://github.com/e2enetworks-oss/e2enetworks-skills.git --target codex --force
-```
-
-### 5. Installed paths
-
-- OpenCode: `~/.config/opencode/skills/use-e2e`
-- Codex: `~/.codex/skills/use-e2e`
-- Claude: `~/.claude/skills/use-e2e`
-
-Claude Code currently discovers local skills from `~/.claude/skills/`. If Claude is already running, restart it after install so it reloads the new skill.
-
-### 6. Other AI agent CLI examples
-
-OpenCode example:
-
-```bash
-opencode .
-```
-
-OpenCode one-shot example:
-
-```bash
-opencode run --dir "$PWD" "Use the use-e2e skill."
-```
-
-Amp example:
-
-```bash
-amp skill add ./plugins/e2e/skills/use-e2e --global --overwrite --name use-e2e
-```
-
-Verify Amp skill install:
-
-```bash
-amp skill list
-```
+- [Agent Skills Specification](https://agentskills.io/specification)
+- [E2E Networks Docs](https://docs.e2enetworks.com)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT

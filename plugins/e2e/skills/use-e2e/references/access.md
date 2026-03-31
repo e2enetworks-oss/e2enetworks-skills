@@ -1,11 +1,15 @@
 # Access
 
-Temporary release note:
-- `hitesh-test` is temporary and exists only for pre-release testing.
+Temporary testing note:
+- For testing, the source of truth is `https://github.com/e2enetworks-oss/e2ectl` on branch `develop`.
+- Clone and run that repo before falling back to installed package commands.
+- `hitesh-test` is temporary and exists only for pre-release fallback testing.
 - Before public release of this skill pack, remove `hitesh-test` fallback/install references and depend only on the official published `e2ectl` package.
 
 In this file, `CLI` means:
 
+- `node dist/app/index.js` from a cloned `e2ectl` `develop` checkout, or
+- `npm run dev --` from that checkout for local testing only when `dist/` is not built yet, or
 - `e2ectl`, or
 - `hitesh-test`, or
 - `npx hitesh-test` after project-local install
@@ -14,7 +18,19 @@ Do not use repeated `--help` calls for the commands listed here. Use these direc
 
 ## Install
 
-If no CLI is present, ask:
+Start with the testing repo first:
+
+```bash
+git clone --depth 1 --branch develop https://github.com/e2enetworks-oss/e2ectl.git /tmp/e2ectl-develop
+cd /tmp/e2ectl-develop
+npm install
+make build
+node dist/app/index.js config list
+```
+
+If the repo is already cloned locally, prefer updating or reusing that checkout on `develop` instead of cloning a second copy.
+
+If cloning or building the repo is not possible, ask:
 
 ```text
 Do you want to install the npm package globally or in this project?
@@ -33,7 +49,7 @@ npm i hitesh-test
 npx hitesh-test --help
 ```
 
-Remove the temporary package instructions above before public release, once `e2ectl` is published.
+Remove the temporary package instructions above before public release, once repo-first testing is no longer needed and the official published `e2ectl` package is the only supported path.
 
 ## Config
 
