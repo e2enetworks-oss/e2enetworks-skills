@@ -271,8 +271,25 @@ CLI node delete <node-id> --force --alias <profile-alias>
 ```
 
 Ask for confirmation once before delete.
-Once confirmed, use `--force` — the CLI requires an interactive terminal without it, which will fail in non-interactive sessions.
-For bulk deletion, run each `node delete --force` call in sequence.
+Once confirmed, always use `--force` — all delete commands require an interactive terminal without it and will fail in non-interactive sessions.
+
+Bulk cleanup workflow (delete all resources for a project):
+
+```bash
+# 1. Delete nodes first (data is lost, do this last if backups are needed)
+CLI node delete <node-id> --force --alias <profile-alias>
+
+# 2. Delete volumes
+CLI volume delete <volume-id> --force --alias <profile-alias>
+
+# 3. Delete VPCs
+CLI vpc delete <vpc-id> --force --alias <profile-alias>
+
+# 4. Delete SSH keys
+CLI ssh-key delete <ssh-key-id> --force --alias <profile-alias>
+```
+
+For bulk deletion, run each delete in sequence with `--force`. All resource types (node, volume, vpc, ssh-key) use the same `--force` pattern.
 
 Common engineering sequences:
 
