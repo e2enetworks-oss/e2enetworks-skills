@@ -169,10 +169,12 @@ For create:
 
 - ask for node name
 - ask for alias or project/location context
-- discover OS rows first
-- discover exact plan/image values next
-- use the exact returned plan and image
+- discover OS rows first with `node catalog os` (no extra flags needed)
+- from the returned rows, pick the desired display-category, category, os, and os-version values
+- then call `node catalog plans` with all four required flags using the exact values from the OS rows
+- use the exact returned plan and image from that second call
 - if billing matters, ask hourly vs committed and use the exact committed plan id when needed
+- never call `node catalog plans` bare — it requires `--display-category`, `--category`, `--os`, and `--os-version`
 
 For delete:
 
@@ -245,11 +247,21 @@ CLI node get <node-id> --alias <profile-alias>
 CLI node action power-off <node-id> --alias <profile-alias>
 CLI node action power-on <node-id> --alias <profile-alias>
 CLI node action save-image <node-id> --name <image-name> --alias <profile-alias>
-CLI node action vpc attach <node-id> --vpc-id <vpc-id> --alias <profile-alias>
+CLI node action vpc attach <node-id> --vpc-id <network-id-from-vpc-list> --alias <profile-alias>
 CLI node action volume attach <node-id> --volume-id <volume-id> --alias <profile-alias>
 CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <profile-alias>
-CLI node delete <node-id> --alias <profile-alias>
+CLI node delete <node-id> --force --alias <profile-alias>
 CLI node create --alias <profile-alias> --name <node-name> --plan <plan> --image <image> --billing-type committed --committed-plan-id <committed-plan-id>
+```
+
+Catalog discovery (two-step — never call `node catalog plans` bare):
+
+```bash
+# Step 1: list OS rows to get valid flag values
+CLI node catalog os --alias <profile-alias>
+
+# Step 2: use exact values from step 1 output
+CLI node catalog plans --display-category <displayCategory> --category <category> --os <os> --os-version <osVersion> --alias <profile-alias>
 ```
 
 Action verification:
@@ -319,7 +331,7 @@ CLI node create --alias <profile-alias> --name <node-name> --plan <plan> --image
 CLI ssh-key list --alias <profile-alias>
 CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <profile-alias>
 CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <profile-alias>
-CLI node action vpc attach <node-id> --vpc-id <vpc-id> --alias <profile-alias>
+CLI node action vpc attach <node-id> --vpc-id <network-id-from-vpc-list> --alias <profile-alias>
 CLI node action volume attach <node-id> --volume-id <volume-id> --alias <profile-alias>
 CLI node get <node-id> --alias <profile-alias>
 ssh -i <private-key-path> <ssh-user>@<public-ip>
@@ -335,14 +347,24 @@ scp -i <private-key-path> -r <local-path> root@<public-ip>:<remote-path>
 
 SSH key workflow:
 
+Always run `ssh-key list` before attempting to upload. Check both label and key content for duplicates:
+
+- If a key with the same label already exists, show it to the user and ask: use the existing key or upload a new one with a different label?
+- If the user chooses to use the existing key, skip `ssh-key create` and go straight to `node action ssh-key attach` with the existing key ID.
+- If `ssh-key create` returns `"You cannot add the same key again"`, run `ssh-key list`, find the matching key, and ask the user whether to use it or upload a different key file.
+- Never retry `ssh-key create` with the same key content after that error.
+
 ```bash
+# Step 1: check existing keys before uploading
 CLI ssh-key list --alias <profile-alias>
+
+# Step 2a: if no matching key exists, upload
 CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <profile-alias>
-cat ~/.ssh/id_ed25519.pub | CLI ssh-key create --label <key-label> --public-key-file - --alias <profile-alias>
-CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <profile-alias>
+
+# Step 2b: if key already exists, use its ID directly
+CLI node action ssh-key attach <node-id> --ssh-key-id <existing-ssh-key-id> --alias <profile-alias>
 ```
 
-If `ssh-key list` shows no keys, upload one before trying to attach.
 Use `--label`, not `--name`.
 Use `--public-key-file`, not `--key`.
 Do not call `node attach`; use `node action ssh-key attach`.
@@ -364,22 +386,25 @@ Only run `mkfs.ext4` for a new empty volume and only after confirmation.
 
 Volumes:
 
+Always run `volume plans` before `volume create` to check available sizes for the selected location. Minimum sizes vary by location (e.g. Chennai minimum is 100 GB). Never assume a user-supplied size is valid — verify it against the plans output first.
+
 ```bash
+# Step 1: check available sizes for the location
 CLI volume plans --alias <profile-alias>
+
+# Step 2: use a size that matches an available plan
 CLI volume create --name <volume-name> --size <size-gb> --billing-type hourly --alias <profile-alias>
 CLI volume create --name <volume-name> --size <size-gb> --billing-type committed --committed-plan-id <committed-plan-id> --post-commit-behavior auto-renew --alias <profile-alias>
 CLI volume list --alias <profile-alias>
 ```
 
-If size is already known:
-
-```bash
-CLI volume plans --size <size-gb> --alias <profile-alias>
-```
+If the user requests a size that is not in the plans output, tell them the available sizes and ask which to use. Do not proceed with an invalid size.
 
 Storage workflow:
 
 ```bash
+# Always check plans first
+CLI volume plans --alias <profile-alias>
 CLI volume create --name <volume-name> --size <size-gb> --billing-type hourly --alias <profile-alias>
 CLI node action volume attach <node-id> --volume-id <volume-id> --alias <profile-alias>
 ssh -i <private-key-path> root@<public-ip>
@@ -404,7 +429,8 @@ CLI vpc create --name <vpc-name> --billing-type hourly --cidr-source e2e --alias
 # Poll until VPC state is Active before attaching — attach fails if VPC is still Creating
 CLI vpc list --alias <profile-alias>
 # repeat vpc list with a sleep between checks until State = Active
-CLI node action vpc attach <node-id> --vpc-id <network-id> --alias <profile-alias>
+# IMPORTANT: use the Network ID column from vpc list output — NOT the VPC ID from vpc create output
+CLI node action vpc attach <node-id> --vpc-id <network-id-from-vpc-list> --alias <profile-alias>
 CLI node get <node-id> --alias <profile-alias>
 ```
 
@@ -414,10 +440,10 @@ VPC readiness rule:
 - Do not attempt attach while state is `Creating` — it will fail with "VPC X not found"
 
 VPC ID disambiguation:
-- `vpc create` output shows two IDs: `VPC ID` and `Network ID`
-- `vpc list` shows the same value under the `Network ID` column
+- `vpc create` output shows two IDs: `VPC ID` and `Network ID` — these are different values
 - `node action vpc attach --vpc-id` takes the **Network ID**, not the VPC ID
-- If attach fails with "VPC X not found", switch to the Network ID
+- Always run `vpc list` after `vpc create` and read the **Network ID** column — use that value for attach
+- Never pass the VPC ID from `vpc create` output directly to `--vpc-id`
 
 SSH keys:
 
