@@ -178,9 +178,9 @@ For delete:
 
 - list or inspect first
 - confirm once before delete
-- when the user has explicitly named or confirmed nodes for deletion (e.g. "delete these two"), use `--force` directly — do not attempt the command without `--force` first
-- for bulk deletion, run each delete in sequence with `--force`
-- if running in a non-interactive terminal without `--force`, explain that delete needs confirmation and retry with `--force`
+- when the user has explicitly named or confirmed resources for deletion, use `--force` directly — do not attempt delete without `--force` first
+- for bulk deletion (e.g. "clean up all resources"), run each delete in sequence with `--force`: nodes first, then volumes, then VPCs, then SSH keys
+- all delete commands (node, volume, vpc, ssh-key) require `--force` in non-interactive terminals — never attempt delete without it
 
 For node actions:
 
