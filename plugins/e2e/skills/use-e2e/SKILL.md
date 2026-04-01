@@ -178,8 +178,9 @@ For delete:
 
 - list or inspect first
 - confirm once before delete
-- treat delete as an interactive confirmed action
-- if running in a non-interactive terminal, explain that delete needs confirmation and use an interactive terminal session when possible
+- when the user has explicitly named or confirmed nodes for deletion (e.g. "delete these two"), use `--force` directly — do not attempt the command without `--force` first
+- for bulk deletion, run each delete in sequence with `--force`
+- if running in a non-interactive terminal without `--force`, explain that delete needs confirmation and retry with `--force`
 
 For node actions:
 
@@ -266,11 +267,12 @@ Delete workflow:
 
 ```bash
 CLI node get <node-id> --alias <profile-alias>
-CLI node delete <node-id> --alias <profile-alias>
+CLI node delete <node-id> --force --alias <profile-alias>
 ```
 
 Ask for confirmation once before delete.
-If the CLI requires an interactive confirmation prompt, use an interactive terminal session instead of assuming a one-shot delete will succeed.
+Once confirmed, use `--force` — the CLI requires an interactive terminal without it, which will fail in non-interactive sessions.
+For bulk deletion, run each `node delete --force` call in sequence.
 
 Common engineering sequences:
 
@@ -382,9 +384,23 @@ Networking workflow:
 
 ```bash
 CLI vpc create --name <vpc-name> --billing-type hourly --cidr-source e2e --alias <profile-alias>
-CLI node action vpc attach <node-id> --vpc-id <vpc-id> --alias <profile-alias>
+# Poll until VPC state is Active before attaching — attach fails if VPC is still Creating
+CLI vpc list --alias <profile-alias>
+# repeat vpc list with a sleep between checks until State = Active
+CLI node action vpc attach <node-id> --vpc-id <network-id> --alias <profile-alias>
 CLI node get <node-id> --alias <profile-alias>
 ```
+
+VPC readiness rule:
+- `node action vpc attach` only works when the VPC state is `Active`
+- After `vpc create`, poll `vpc list` every 10–15 seconds until the VPC state becomes `Active`
+- Do not attempt attach while state is `Creating` — it will fail with "VPC X not found"
+
+VPC ID disambiguation:
+- `vpc create` output shows two IDs: `VPC ID` and `Network ID`
+- `vpc list` shows the same value under the `Network ID` column
+- `node action vpc attach --vpc-id` takes the **Network ID**, not the VPC ID
+- If attach fails with "VPC X not found", switch to the Network ID
 
 SSH keys:
 
