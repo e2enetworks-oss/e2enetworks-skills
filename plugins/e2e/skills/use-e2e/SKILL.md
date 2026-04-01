@@ -173,6 +173,7 @@ For create:
 - from the returned rows, pick the desired display-category, category, os, and os-version values
 - then call `node catalog plans` with all four required flags using the exact values from the OS rows
 - use the exact returned plan and image from that second call
+- the `--plan` value must be the full Plan column string from `node catalog plans` output (e.g. `"c2.large (8 vCPUs / 16 GB RAM / 100 GB SSD)"`) — never use the SKU shortname alone (e.g. `c2.large`); using the shortname causes a 412 error
 - if billing matters, ask hourly vs committed and use the exact committed plan id when needed
 - never call `node catalog plans` bare — it requires `--display-category`, `--category`, `--os`, and `--os-version`
 
@@ -251,7 +252,9 @@ CLI node action vpc attach <node-id> --vpc-id <network-id-from-vpc-list> --alias
 CLI node action volume attach <node-id> --volume-id <volume-id> --alias <profile-alias>
 CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <profile-alias>
 CLI node delete <node-id> --force --alias <profile-alias>
-CLI node create --alias <profile-alias> --name <node-name> --plan <plan> --image <image> --billing-type committed --committed-plan-id <committed-plan-id>
+CLI node create --alias <profile-alias> --name <node-name> --plan "<full-plan-string-from-catalog>" --image <image> --billing-type committed --committed-plan-id <committed-plan-id>
+# <full-plan-string-from-catalog> is the exact Plan column value from `node catalog plans`, e.g. "c2.large (8 vCPUs / 16 GB RAM / 100 GB SSD)"
+# WARNING: do NOT use the SKU shortname (e.g. c2.large) — it causes a 412 error
 ```
 
 Catalog discovery (two-step — never call `node catalog plans` bare):
@@ -291,7 +294,8 @@ Bulk cleanup workflow (delete all resources for a project):
 # 1. Delete nodes first (data is lost, do this last if backups are needed)
 CLI node delete <node-id> --force --alias <profile-alias>
 
-# 2. Delete volumes
+# 2. Delete volumes — detach first if status is Attached
+# CLI node action volume detach <node-id> --volume-id <volume-id> --alias <profile-alias>
 CLI volume delete <volume-id> --force --alias <profile-alias>
 
 # 3. Delete VPCs
@@ -325,7 +329,8 @@ Use this for:
 Provision and deploy:
 
 ```bash
-CLI node create --alias <profile-alias> --name <node-name> --plan <plan> --image <image>
+CLI node create --alias <profile-alias> --name <node-name> --plan "<full-plan-string-from-catalog>" --image <image>
+# <full-plan-string-from-catalog> is the exact Plan column value from `node catalog plans` — NOT the SKU shortname
 # Poll until Running before any attach actions:
 # for i in $(seq 1 20); do STATUS=$(CLI node get <node-id> --alias <profile-alias> | grep Status); echo $STATUS; echo $STATUS | grep -qi running && break; sleep 15; done
 CLI ssh-key list --alias <profile-alias>
@@ -399,6 +404,18 @@ CLI volume list --alias <profile-alias>
 ```
 
 If the user requests a size that is not in the plans output, tell them the available sizes and ask which to use. Do not proceed with an invalid size.
+
+Volume deletion guard — attached volumes cannot be deleted:
+
+- Before deleting a volume, check its status with `volume list` or the volume details.
+- If the volume status is `Attached` (or the delete returns a 412 error with "You need to detach block storage from the Node in order to delete"), **stop immediately**.
+- Tell the user: "Volume `<id>` is currently attached to a node. Detach it first before deleting."
+- Run the detach action:
+  ```bash
+  CLI node action volume detach <node-id> --volume-id <volume-id> --alias <profile-alias>
+  ```
+- After detach succeeds, confirm with the user before proceeding to delete.
+- Only run `volume delete` once the volume status is no longer `Attached`.
 
 Storage workflow:
 
