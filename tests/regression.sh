@@ -82,6 +82,82 @@ create_remote_repo_fixture() {
   printf 'file://%s\n' "$repo_dir"
 }
 
+create_cli_stub_dir() {
+  local stub_dir="$1"
+
+  mkdir -p "$stub_dir"
+
+  cat > "$stub_dir/npm" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n "${FAKE_NPM_LOG:-}" ]]; then
+  printf '%s\n' "$*" >> "$FAKE_NPM_LOG"
+fi
+
+if [[ "${1:-}" == "view" && "${2:-}" == "@e2enetworks-oss/e2ectl" && "${3:-}" == "version" ]]; then
+  if [[ "${FAKE_NPM_VIEW_FAIL:-0}" == "1" ]]; then
+    printf 'npm view failed\n' >&2
+    exit 1
+  fi
+
+  printf '%s\n' "${FAKE_NPM_LATEST_VERSION:-0.0.0}"
+  exit 0
+fi
+
+if [[ "${1:-}" == "install" && "${2:-}" == "-g" && "${3:-}" == "@e2enetworks-oss/e2ectl@latest" ]]; then
+  if [[ "${FAKE_NPM_INSTALL_FAIL:-0}" == "1" ]]; then
+    printf 'npm install failed\n' >&2
+    exit 1
+  fi
+
+  exit 0
+fi
+
+printf 'unexpected npm args: %s\n' "$*" >&2
+exit 1
+EOF
+  chmod +x "$stub_dir/npm"
+}
+
+write_fake_e2ectl() {
+  local stub_dir="$1"
+
+  cat > "$stub_dir/e2ectl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "--version" ]]; then
+  printf 'e2ectl %s\n' "${FAKE_E2ECTL_VERSION:-0.0.0}"
+  exit 0
+fi
+
+printf '%s\n' "${FAKE_E2ECTL_OUTPUT:-FAKE_E2ECTL}"
+EOF
+  chmod +x "$stub_dir/e2ectl"
+}
+
+installer_path_env() {
+  local stub_dir="$1"
+
+  printf '%s:/usr/bin:/bin:/usr/sbin:/sbin\n' "$stub_dir"
+}
+
+run_installer_with_stubs() {
+  local stub_dir="$1"
+  shift
+
+  env \
+    PATH="$(installer_path_env "$stub_dir")" \
+    FAKE_NPM_LOG="${FAKE_NPM_LOG:-}" \
+    FAKE_NPM_LATEST_VERSION="${FAKE_NPM_LATEST_VERSION:-}" \
+    FAKE_NPM_VIEW_FAIL="${FAKE_NPM_VIEW_FAIL:-}" \
+    FAKE_NPM_INSTALL_FAIL="${FAKE_NPM_INSTALL_FAIL:-}" \
+    FAKE_E2ECTL_VERSION="${FAKE_E2ECTL_VERSION:-}" \
+    FAKE_E2ECTL_OUTPUT="${FAKE_E2ECTL_OUTPUT:-}" \
+    bash "$repo_root/scripts/install.sh" "$@"
+}
+
 test_install_urls() {
   local raw_url="https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh"
   local repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"
@@ -109,24 +185,32 @@ test_install_script_supported_targets() {
     fail "expected installer usage text to advertise install scope selection"
   grep -F -q '[--repo-ref <branch|tag|commit>]' "$install_script" || \
     fail "expected installer usage text to advertise remote ref selection"
+  grep -F -q '[--skip-cli] [--upgrade-cli]' "$install_script" || \
+    fail "expected installer usage text to advertise CLI lifecycle flags"
   grep -F -q 'official_repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"' "$install_script" || \
     fail "expected installer to default to the official repo URL"
   grep -F -q 'default_remote_ref="main"' "$install_script" || \
     fail "expected installer to default remote installs to the main branch"
   grep -F -q 'Install skills globally or in this project?' "$install_script" || \
     fail "expected installer to prompt for project vs global scope"
+  grep -F -q 'A newer stable e2ectl is available' "$install_script" || \
+    fail "expected installer to prompt for CLI upgrades in interactive mode"
 
-  pass "installer supports simplified targets and advanced remote refs"
+  pass "installer supports simplified targets, remote refs, and CLI lifecycle flags"
 }
 
 test_missing_scope_defaults_to_global_without_tty() {
   local tmp_dir=""
   local claude_home=""
+  local stub_dir=""
 
   tmp_dir="$(mktemp -d)"
   claude_home="$tmp_dir/.claude"
+  stub_dir="$tmp_dir/stubs"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --repo-dir "$repo_root" \
     --claude-home "$claude_home" >/dev/null
@@ -144,17 +228,21 @@ test_rerun_updates_existing_install_without_force() {
   local repo_two=""
   local claude_home=""
   local installed_skill=""
+  local stub_dir=""
 
   tmp_dir="$(mktemp -d)"
   repo_one="$tmp_dir/repo-one"
   repo_two="$tmp_dir/repo-two"
   claude_home="$tmp_dir/.claude"
   installed_skill="$claude_home/skills/use-e2e/SKILL.md"
+  stub_dir="$tmp_dir/stubs"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
 
   write_minimal_skill_repo "$repo_one" "FIRST_INSTALL"
   write_minimal_skill_repo "$repo_two" "SECOND_INSTALL"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --scope global \
     --repo-dir "$repo_one" \
@@ -162,7 +250,7 @@ test_rerun_updates_existing_install_without_force() {
 
   grep -F -q 'FIRST_INSTALL' "$installed_skill" || fail "expected first install marker"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --scope global \
     --repo-dir "$repo_two" \
@@ -178,11 +266,16 @@ test_rerun_updates_existing_install_without_force() {
 test_claude_install_path() {
   local tmp_dir=""
   local claude_home=""
+  local stub_dir=""
 
   tmp_dir="$(mktemp -d)"
   claude_home="$tmp_dir/.claude"
+  stub_dir="$tmp_dir/stubs"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
 
-  bash "$repo_root/scripts/install.sh" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --force >/dev/null
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
+    --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --force >/dev/null
 
   [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install to create $claude_home/skills/use-e2e/SKILL.md"
   [[ ! -e "$claude_home/plugins/e2e" ]] || fail "expected Claude install not to write legacy plugin path $claude_home/plugins/e2e"
@@ -195,12 +288,16 @@ test_claude_install_path() {
 test_project_scope_install_path() {
   local tmp_dir=""
   local project_dir=""
+  local stub_dir=""
 
   tmp_dir="$(mktemp -d)"
   project_dir="$tmp_dir/app"
+  stub_dir="$tmp_dir/stubs"
   mkdir -p "$project_dir"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --scope project \
     --project-dir "$project_dir" \
@@ -222,6 +319,7 @@ test_repo_ref_installs_branch_tag_and_commit() {
   local branch_home=""
   local tag_home=""
   local commit_home=""
+  local stub_dir=""
 
   tmp_dir="$(mktemp -d)"
   repo_url="$(create_remote_repo_fixture "$tmp_dir")"
@@ -229,8 +327,11 @@ test_repo_ref_installs_branch_tag_and_commit() {
   branch_home="$tmp_dir/branch-home"
   tag_home="$tmp_dir/tag-home"
   commit_home="$tmp_dir/commit-home"
+  stub_dir="$tmp_dir/stubs"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --scope global \
     --repo-url "$repo_url" \
@@ -239,7 +340,7 @@ test_repo_ref_installs_branch_tag_and_commit() {
 
   grep -F -q 'BRANCH_REF' "$branch_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref branch install to use branch content"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --scope global \
     --repo-url "$repo_url" \
@@ -248,7 +349,7 @@ test_repo_ref_installs_branch_tag_and_commit() {
 
   grep -F -q 'TAG_REF' "$tag_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref tag install to use tag content"
 
-  bash "$repo_root/scripts/install.sh" \
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
     --target claude \
     --scope global \
     --repo-url "$repo_url" \
@@ -260,6 +361,249 @@ test_repo_ref_installs_branch_tag_and_commit() {
   cleanup_dir "$tmp_dir"
 
   pass "--repo-ref installs branch, tag, and commit sources"
+}
+
+test_cli_missing_installs_globally() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+
+  FAKE_NPM_LOG="$npm_log" FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
+    --target claude \
+    --scope global \
+    --repo-dir "$repo_root" \
+    --claude-home "$claude_home" >/dev/null
+
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected missing e2ectl to trigger a global npm install"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "installer installs e2ectl globally when it is missing"
+}
+
+test_interactive_cli_upgrade_accepts() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  REPO_ROOT="$repo_root" \
+  STUB_DIR="$stub_dir" \
+  NPM_LOG="$npm_log" \
+  CLAUDE_HOME="$claude_home" \
+  EXPECT_RESPONSE="y" \
+  FAKE_E2ECTL_VERSION=0.1.0 \
+  FAKE_NPM_LATEST_VERSION=0.3.0 \
+  /usr/bin/expect <<'EOF' >/dev/null
+set timeout 10
+spawn env "PATH=$env(STUB_DIR):/usr/bin:/bin:/usr/sbin:/sbin" "FAKE_NPM_LOG=$env(NPM_LOG)" "FAKE_E2ECTL_VERSION=$env(FAKE_E2ECTL_VERSION)" "FAKE_NPM_LATEST_VERSION=$env(FAKE_NPM_LATEST_VERSION)" bash "$env(REPO_ROOT)/scripts/install.sh" --target claude --scope global --repo-dir "$env(REPO_ROOT)" --claude-home "$env(CLAUDE_HOME)"
+expect "Upgrade it now?"
+send "$env(EXPECT_RESPONSE)\r"
+expect eof
+catch wait result
+exit [lindex $result 3]
+EOF
+
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected interactive upgrade acceptance to install the latest CLI"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "interactive installer upgrades e2ectl when the user accepts"
+}
+
+test_interactive_cli_upgrade_declines() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  REPO_ROOT="$repo_root" \
+  STUB_DIR="$stub_dir" \
+  NPM_LOG="$npm_log" \
+  CLAUDE_HOME="$claude_home" \
+  EXPECT_RESPONSE="n" \
+  FAKE_E2ECTL_VERSION=0.1.0 \
+  FAKE_NPM_LATEST_VERSION=0.3.0 \
+  /usr/bin/expect <<'EOF' >/dev/null
+set timeout 10
+spawn env "PATH=$env(STUB_DIR):/usr/bin:/bin:/usr/sbin:/sbin" "FAKE_NPM_LOG=$env(NPM_LOG)" "FAKE_E2ECTL_VERSION=$env(FAKE_E2ECTL_VERSION)" "FAKE_NPM_LATEST_VERSION=$env(FAKE_NPM_LATEST_VERSION)" bash "$env(REPO_ROOT)/scripts/install.sh" --target claude --scope global --repo-dir "$env(REPO_ROOT)" --claude-home "$env(CLAUDE_HOME)"
+expect "Upgrade it now?"
+send "$env(EXPECT_RESPONSE)\r"
+expect eof
+catch wait result
+exit [lindex $result 3]
+EOF
+
+  if [[ -f "$npm_log" ]] && grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log"; then
+    fail "expected declining the interactive upgrade prompt to skip npm install"
+  fi
+
+  cleanup_dir "$tmp_dir"
+
+  pass "interactive installer skips CLI upgrade when the user declines"
+}
+
+test_noninteractive_cli_does_not_upgrade_without_flag() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+  local output=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  output="$(
+    FAKE_NPM_LOG="$npm_log" FAKE_E2ECTL_VERSION=0.1.0 FAKE_NPM_LATEST_VERSION=0.3.0 \
+      run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" 2>&1
+  )"
+
+  [[ "$output" == *"pass --upgrade-cli to upgrade it"* ]] || \
+    fail "expected non-interactive upgrade guidance, got: $output"
+  if grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log"; then
+    fail "expected non-interactive installer not to auto-upgrade without --upgrade-cli"
+  fi
+
+  cleanup_dir "$tmp_dir"
+
+  pass "non-interactive installer warns instead of auto-upgrading the CLI"
+}
+
+test_noninteractive_upgrade_cli_flag_upgrades() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  FAKE_NPM_LOG="$npm_log" FAKE_E2ECTL_VERSION=0.1.0 run_installer_with_stubs "$stub_dir" \
+    --target claude \
+    --scope global \
+    --repo-dir "$repo_root" \
+    --claude-home "$claude_home" \
+    --upgrade-cli >/dev/null
+
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected --upgrade-cli to trigger a global CLI upgrade"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "--upgrade-cli upgrades the global CLI without prompting"
+}
+
+test_npm_lookup_failure_with_existing_cli_warns_and_continues() {
+  local tmp_dir=""
+  local stub_dir=""
+  local claude_home=""
+  local output=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  output="$(
+    FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_VIEW_FAIL=1 \
+      run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" 2>&1
+  )"
+
+  [[ "$output" == *"could not check npm for the latest e2ectl version"* ]] || \
+    fail "expected lookup failure warning, got: $output"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected installer to continue when npm lookup fails but e2ectl already exists"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "installer warns and continues when npm lookup fails but e2ectl exists"
+}
+
+test_required_cli_install_failure_fails_closed() {
+  local tmp_dir=""
+  local stub_dir=""
+  local claude_home=""
+  local output=""
+  local rc=0
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+
+  set +e
+  output="$(
+    FAKE_NPM_INSTALL_FAIL=1 run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" 2>&1
+  )"
+  rc=$?
+  set -e
+
+  [[ "$rc" != "0" ]] || fail "expected required CLI install failure to exit non-zero"
+  [[ "$output" == *"failed to install @e2enetworks-oss/e2ectl globally"* ]] || \
+    fail "expected explicit CLI install failure output, got: $output"
+  [[ ! -e "$claude_home/skills/use-e2e" ]] || \
+    fail "expected installer to fail before writing the skill when CLI install fails"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "installer fails closed when required CLI installation fails"
+}
+
+test_skip_cli_allows_skill_install_without_cli() {
+  local tmp_dir=""
+  local stub_dir=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+
+  run_installer_with_stubs "$stub_dir" \
+    --target claude \
+    --scope global \
+    --repo-dir "$repo_root" \
+    --claude-home "$claude_home" \
+    --skip-cli >/dev/null
+
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected --skip-cli to allow skill installation without e2ectl"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "--skip-cli bypasses required CLI installation"
 }
 
 test_relative_bin_with_cwd() {
@@ -457,6 +801,14 @@ main() {
   test_claude_install_path
   test_project_scope_install_path
   test_repo_ref_installs_branch_tag_and_commit
+  test_cli_missing_installs_globally
+  test_interactive_cli_upgrade_accepts
+  test_interactive_cli_upgrade_declines
+  test_noninteractive_cli_does_not_upgrade_without_flag
+  test_noninteractive_upgrade_cli_flag_upgrades
+  test_npm_lookup_failure_with_existing_cli_warns_and_continues
+  test_required_cli_install_failure_fails_closed
+  test_skip_cli_allows_skill_install_without_cli
   test_relative_bin_with_cwd
   test_public_mode_prefers_installed_e2ectl
   test_public_mode_missing_e2ectl_shows_guidance

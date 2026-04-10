@@ -4,10 +4,11 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Install e2enetworks-skills into Codex, Claude Code, OpenCode, or Amp.
-This script installs the skill pack. Run it again later to update the installed skill.
+This script installs the skill pack and manages the global e2ectl CLI.
+Run it again later to update the installed skill.
 
 Usage:
-  install.sh [--target codex|claude|claude-code|opencode|open-code|amp|all] [--scope global|project] [--project-dir <path>] [--repo-url <git-url>] [--repo-ref <branch|tag|commit>] [--repo-dir <path>] [--codex-home <path>] [--claude-home <path>] [--opencode-home <path>] [--force]
+  install.sh [--target codex|claude|claude-code|opencode|open-code|amp|all] [--scope global|project] [--project-dir <path>] [--repo-url <git-url>] [--repo-ref <branch|tag|commit>] [--repo-dir <path>] [--skip-cli] [--upgrade-cli] [--codex-home <path>] [--claude-home <path>] [--opencode-home <path>] [--force]
 
 Options:
   --target        Install target (default: all)
@@ -16,6 +17,8 @@ Options:
   --repo-url      Git URL to clone when installing from a remote repo (default: official repo)
   --repo-ref      Remote branch, tag, or commit to install from (default remote ref: main)
   --repo-dir      Local repo directory containing plugins/e2e
+  --skip-cli      Skip e2ectl installation and upgrade checks
+  --upgrade-cli   Upgrade the globally installed e2ectl to the latest stable release
   --codex-home    Codex home (default: $CODEX_HOME or ~/.codex)
   --claude-home   Claude home (default: $CLAUDE_HOME or ~/.claude)
   --opencode-home OpenCode config dir (default: $OPENCODE_HOME or ~/.config/opencode)
@@ -25,6 +28,7 @@ Options:
 Examples:
   ./scripts/install.sh --force
   ./scripts/install.sh --scope project --project-dir "$PWD" --force
+  ./scripts/install.sh --upgrade-cli --force
   ./scripts/install.sh --repo-ref intial-setup --target claude --force
   curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
     bash -s -- --target claude --force
@@ -34,6 +38,10 @@ EOF
 fail() {
   printf 'Error: %s\n' "$1" >&2
   exit 1
+}
+
+warn() {
+  printf 'Warning: %s\n' "$1" >&2
 }
 
 resolve_dir_path() {
@@ -153,11 +161,119 @@ install_amp() {
   printf 'Installed: amp skill use-e2e\n'
 }
 
+extract_semver() {
+  local raw_value="$1"
+
+  printf '%s\n' "$raw_value" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1
+}
+
+version_is_less_than() {
+  local current_version="$1"
+  local latest_version="$2"
+  local first_version=""
+
+  [[ "$current_version" != "$latest_version" ]] || return 1
+  first_version="$(printf '%s\n%s\n' "$current_version" "$latest_version" | sort -V | head -n 1)"
+  [[ "$first_version" == "$current_version" ]]
+}
+
+read_installed_cli_version() {
+  local version_output=""
+  local installed_version=""
+
+  version_output="$(e2ectl --version 2>&1)" || return 1
+  installed_version="$(extract_semver "$version_output")"
+  [[ -n "$installed_version" ]] || return 1
+
+  printf '%s\n' "$installed_version"
+}
+
+fetch_latest_cli_version() {
+  local version_output=""
+  local latest_version=""
+
+  version_output="$(npm view @e2enetworks-oss/e2ectl version 2>/dev/null)" || return 1
+  latest_version="$(extract_semver "$version_output")"
+  [[ -n "$latest_version" ]] || return 1
+
+  printf '%s\n' "$latest_version"
+}
+
+install_global_cli() {
+  npm install -g @e2enetworks-oss/e2ectl@latest
+}
+
+ensure_cli_ready() {
+  local cli_present="false"
+  local installed_version=""
+  local latest_version=""
+
+  if [[ "$skip_cli" == "true" ]]; then
+    cli_status="skipped (--skip-cli)"
+    return 0
+  fi
+
+  if command -v e2ectl >/dev/null 2>&1; then
+    cli_present="true"
+  fi
+
+  if [[ "$upgrade_cli" == "true" ]]; then
+    command -v npm >/dev/null 2>&1 || fail "npm is required to upgrade @e2enetworks-oss/e2ectl. Install npm or rerun with --skip-cli."
+    install_global_cli >/dev/null || fail "failed to upgrade @e2enetworks-oss/e2ectl globally"
+    cli_status="upgraded globally"
+    return 0
+  fi
+
+  if [[ "$cli_present" == "false" ]]; then
+    command -v npm >/dev/null 2>&1 || fail "npm is required to install @e2enetworks-oss/e2ectl globally. Install npm or rerun with --skip-cli."
+    install_global_cli >/dev/null || fail "failed to install @e2enetworks-oss/e2ectl globally"
+    cli_status="installed globally"
+    return 0
+  fi
+
+  cli_status="kept existing install"
+
+  if ! command -v npm >/dev/null 2>&1; then
+    warn "npm was not found. Keeping the installed e2ectl."
+    return 0
+  fi
+
+  if ! installed_version="$(read_installed_cli_version)"; then
+    warn "could not determine the installed e2ectl version. Keeping the installed CLI."
+    return 0
+  fi
+
+  if ! latest_version="$(fetch_latest_cli_version)"; then
+    warn "could not check npm for the latest e2ectl version. Keeping the installed CLI."
+    return 0
+  fi
+
+  if ! version_is_less_than "$installed_version" "$latest_version"; then
+    cli_status="kept existing install ($installed_version)"
+    return 0
+  fi
+
+  if [[ -t 0 && -t 1 ]]; then
+    if prompt_yes_no "A newer stable e2ectl is available ($installed_version -> $latest_version). Upgrade it now? [Y/n] " "y"; then
+      install_global_cli >/dev/null || fail "failed to upgrade @e2enetworks-oss/e2ectl globally"
+      cli_status="upgraded globally ($installed_version -> $latest_version)"
+    else
+      cli_status="kept existing install ($installed_version)"
+    fi
+    return 0
+  fi
+
+  printf 'A newer stable e2ectl is available (%s -> %s). Rerun the installer interactively or pass --upgrade-cli to upgrade it.\n' "$installed_version" "$latest_version"
+  return 0
+}
+
 target="all"
 scope=""
 repo_url=""
 repo_ref=""
 repo_dir=""
+skip_cli="false"
+upgrade_cli="false"
 project_dir="$PWD"
 codex_home="${CODEX_HOME:-$HOME/.codex}"
 claude_home="${CLAUDE_HOME:-$HOME/.claude}"
@@ -165,6 +281,7 @@ opencode_home="${OPENCODE_HOME:-$HOME/.config/opencode}"
 force="false"
 official_repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"
 default_remote_ref="main"
+cli_status="not checked"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -191,6 +308,14 @@ while [[ $# -gt 0 ]]; do
     --repo-dir)
       repo_dir="${2:-}"
       shift 2
+      ;;
+    --skip-cli)
+      skip_cli="true"
+      shift
+      ;;
+    --upgrade-cli)
+      upgrade_cli="true"
+      shift
       ;;
     --codex-home)
       codex_home="${2:-}"
@@ -235,6 +360,7 @@ esac
 
 [[ -z "$repo_dir" || -z "$repo_url" ]] || fail "--repo-dir cannot be combined with --repo-url"
 [[ -z "$repo_dir" || -z "$repo_ref" ]] || fail "--repo-dir cannot be combined with --repo-ref"
+[[ "$skip_cli" == "false" || "$upgrade_cli" == "false" ]] || fail "--skip-cli cannot be combined with --upgrade-cli"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 candidate_repo="$(cd -- "$script_dir/.." && pwd)"
@@ -307,6 +433,8 @@ fi
 skill_src="$source_repo/plugins/e2e/skills/use-e2e"
 [[ -d "$skill_src" ]] || fail "missing skill source: $skill_src"
 
+ensure_cli_ready
+
 if [[ "$target" == "codex" || "$target" == "all" ]]; then
   copy_dir "$skill_src" "$codex_home/skills/use-e2e"
 fi
@@ -326,6 +454,7 @@ fi
 printf '\nDone.\n'
 printf 'Install scope:        %s\n' "$scope"
 printf 'Skill source:         %s\n' "$source_label"
+printf 'e2ectl status:        %s\n' "$cli_status"
 if [[ "$scope" == "project" ]]; then
   printf 'Project root:         %s\n' "$project_dir"
 fi
