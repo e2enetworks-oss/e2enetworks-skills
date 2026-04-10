@@ -4,27 +4,28 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Install e2enetworks-skills into Codex, Claude Code, OpenCode, or Amp.
-This script installs the skill pack only. It does not install the e2ectl CLI.
+This script installs the skill pack. Run it again later to update the installed skill.
 
 Usage:
-  install.sh [--target codex|claude|claude-code|opencode|open-code|amp|all] [--scope global|project] [--project-dir <path>] [--repo-url <git-url>] [--repo-dir <path>] [--codex-home <path>] [--claude-home <path>] [--opencode-home <path>] [--force]
+  install.sh [--target codex|claude|claude-code|opencode|open-code|amp|all] [--scope global|project] [--project-dir <path>] [--repo-url <git-url>] [--repo-ref <branch|tag|commit>] [--repo-dir <path>] [--codex-home <path>] [--claude-home <path>] [--opencode-home <path>] [--force]
 
 Options:
-  --target      Install target (default: all)
-  --scope       Install scope. If omitted in an interactive terminal, ask global vs project.
-  --project-dir Project root for --scope project (default: current working directory)
-  --repo-url    Git URL to clone when script runs via curl pipe (default: official repo)
-  --repo-dir    Local repo directory containing plugins/e2e
-  --codex-home  Codex home (default: $CODEX_HOME or ~/.codex)
-  --claude-home Claude home (default: $CLAUDE_HOME or ~/.claude)
+  --target        Install target (default: all)
+  --scope         Install scope. Defaults to global outside interactive terminals.
+  --project-dir   Project root for --scope project (default: current working directory)
+  --repo-url      Git URL to clone when installing from a remote repo (default: official repo)
+  --repo-ref      Remote branch, tag, or commit to install from (default remote ref: main)
+  --repo-dir      Local repo directory containing plugins/e2e
+  --codex-home    Codex home (default: $CODEX_HOME or ~/.codex)
+  --claude-home   Claude home (default: $CLAUDE_HOME or ~/.claude)
   --opencode-home OpenCode config dir (default: $OPENCODE_HOME or ~/.config/opencode)
-  --force       Overwrite existing installs
-  -h, --help    Show this help
+  --force         Replace existing installs without prompting
+  -h, --help      Show this help
 
 Examples:
   ./scripts/install.sh --force
   ./scripts/install.sh --scope project --project-dir "$PWD" --force
-  ./scripts/install.sh --target amp --force
+  ./scripts/install.sh --repo-ref intial-setup --target claude --force
   curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
     bash -s -- --target claude --force
 EOF
@@ -34,80 +35,6 @@ fail() {
   printf 'Error: %s\n' "$1" >&2
   exit 1
 }
-
-target="all"
-scope=""
-repo_url=""
-repo_dir=""
-project_dir="$PWD"
-codex_home="${CODEX_HOME:-$HOME/.codex}"
-claude_home="${CLAUDE_HOME:-$HOME/.claude}"
-opencode_home="${OPENCODE_HOME:-$HOME/.config/opencode}"
-force="false"
-official_repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --target)
-      target="${2:-}"
-      shift 2
-      ;;
-    --scope)
-      scope="${2:-}"
-      shift 2
-      ;;
-    --project-dir)
-      project_dir="${2:-}"
-      shift 2
-      ;;
-    --repo-url)
-      repo_url="${2:-}"
-      shift 2
-      ;;
-    --repo-dir)
-      repo_dir="${2:-}"
-      shift 2
-      ;;
-    --codex-home)
-      codex_home="${2:-}"
-      shift 2
-      ;;
-    --claude-home)
-      claude_home="${2:-}"
-      shift 2
-      ;;
-    --opencode-home)
-      opencode_home="${2:-}"
-      shift 2
-      ;;
-    --force)
-      force="true"
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      fail "unknown argument: $1"
-      ;;
-  esac
-done
-
-case "$target" in
-  claude-code) target="claude" ;;
-  open-code) target="opencode" ;;
-esac
-
-case "$target" in
-  codex|claude|opencode|amp|all) ;;
-  *) fail "--target must be one of: codex, claude, claude-code, opencode, open-code, amp, all" ;;
-esac
-
-case "$scope" in
-  ""|global|project) ;;
-  *) fail "--scope must be one of: global, project" ;;
-esac
 
 resolve_dir_path() {
   (
@@ -166,6 +93,28 @@ prompt_yes_no() {
   esac
 }
 
+clone_repo_at_ref() {
+  local url="$1"
+  local ref="$2"
+  local dst="$3"
+
+  if [[ -z "$ref" ]]; then
+    git clone --depth 1 "$url" "$dst" >/dev/null
+    return 0
+  fi
+
+  if git clone --depth 1 --branch "$ref" --single-branch "$url" "$dst" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  git clone --depth 1 "$url" "$dst" >/dev/null
+  (
+    cd "$dst" >/dev/null 2>&1 || exit 1
+    git fetch --depth 1 origin "$ref" >/dev/null 2>&1 || exit 1
+    git checkout --detach FETCH_HEAD >/dev/null 2>&1
+  ) || fail "unable to fetch repo ref: $ref"
+}
+
 copy_dir() {
   local src="$1"
   local dst="$2"
@@ -173,11 +122,15 @@ copy_dir() {
   if [[ -e "$dst" ]]; then
     if [[ "$force" == "true" ]]; then
       rm -rf "$dst"
-    elif prompt_yes_no "Existing install found at $dst. Update it now? [y/N] " "n"; then
-      rm -rf "$dst"
+    elif [[ -t 0 && -t 1 ]]; then
+      if prompt_yes_no "Existing install found at $dst. Update it now? [Y/n] " "y"; then
+        rm -rf "$dst"
+      else
+        printf 'Skipped existing install: %s\n' "$dst"
+        return 0
+      fi
     else
-      printf 'Skip existing path (use --force to overwrite): %s\n' "$dst"
-      return 0
+      rm -rf "$dst"
     fi
   fi
 
@@ -200,9 +153,93 @@ install_amp() {
   printf 'Installed: amp skill use-e2e\n'
 }
 
+target="all"
+scope=""
+repo_url=""
+repo_ref=""
+repo_dir=""
+project_dir="$PWD"
+codex_home="${CODEX_HOME:-$HOME/.codex}"
+claude_home="${CLAUDE_HOME:-$HOME/.claude}"
+opencode_home="${OPENCODE_HOME:-$HOME/.config/opencode}"
+force="false"
+official_repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"
+default_remote_ref="main"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target)
+      target="${2:-}"
+      shift 2
+      ;;
+    --scope)
+      scope="${2:-}"
+      shift 2
+      ;;
+    --project-dir)
+      project_dir="${2:-}"
+      shift 2
+      ;;
+    --repo-url)
+      repo_url="${2:-}"
+      shift 2
+      ;;
+    --repo-ref)
+      repo_ref="${2:-}"
+      shift 2
+      ;;
+    --repo-dir)
+      repo_dir="${2:-}"
+      shift 2
+      ;;
+    --codex-home)
+      codex_home="${2:-}"
+      shift 2
+      ;;
+    --claude-home)
+      claude_home="${2:-}"
+      shift 2
+      ;;
+    --opencode-home)
+      opencode_home="${2:-}"
+      shift 2
+      ;;
+    --force)
+      force="true"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      fail "unknown argument: $1"
+      ;;
+  esac
+done
+
+case "$target" in
+  claude-code) target="claude" ;;
+  open-code) target="opencode" ;;
+esac
+
+case "$target" in
+  codex|claude|opencode|amp|all) ;;
+  *) fail "--target must be one of: codex, claude, claude-code, opencode, open-code, amp, all" ;;
+esac
+
+case "$scope" in
+  ""|global|project) ;;
+  *) fail "--scope must be one of: global, project" ;;
+esac
+
+[[ -z "$repo_dir" || -z "$repo_url" ]] || fail "--repo-dir cannot be combined with --repo-url"
+[[ -z "$repo_dir" || -z "$repo_ref" ]] || fail "--repo-dir cannot be combined with --repo-ref"
+
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 candidate_repo="$(cd -- "$script_dir/.." && pwd)"
 source_repo=""
+source_label=""
 tmp_dir=""
 
 cleanup() {
@@ -213,8 +250,10 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ -z "$scope" ]]; then
-  if ! scope="$(prompt_choice "Install skills globally or in this project? [global/project] (default: global): " "global")"; then
-    fail "install scope was not provided and no interactive terminal was available. Pass --scope global or --scope project."
+  if scope="$(prompt_choice "Install skills globally or in this project? [global/project] (default: global): " "global")"; then
+    :
+  else
+    scope="global"
   fi
 fi
 
@@ -240,22 +279,32 @@ if [[ "$scope" == "project" ]]; then
 fi
 
 if [[ -n "$repo_dir" ]]; then
+  repo_dir="$(resolve_dir_path "$repo_dir")"
   source_repo="$repo_dir"
-elif [[ -d "$candidate_repo/plugins/e2e" ]]; then
-  source_repo="$candidate_repo"
-else
+  source_label="local repo"
+elif [[ -n "$repo_url" || -n "$repo_ref" || ! -d "$candidate_repo/plugins/e2e" ]]; then
   if [[ -z "$repo_url" ]]; then
     repo_url="$official_repo_url"
   fi
+  if [[ -z "$repo_ref" && "$repo_url" == "$official_repo_url" ]]; then
+    repo_ref="$default_remote_ref"
+  fi
 
-  command -v git >/dev/null 2>&1 || fail "git is required when using --repo-url"
+  command -v git >/dev/null 2>&1 || fail "git is required when installing from a remote repo"
   tmp_dir="$(mktemp -d)"
-  git clone --depth 1 "$repo_url" "$tmp_dir/repo" >/dev/null
+  clone_repo_at_ref "$repo_url" "$repo_ref" "$tmp_dir/repo"
   source_repo="$tmp_dir/repo"
+  if [[ -n "$repo_ref" ]]; then
+    source_label="remote repo ($repo_ref)"
+  else
+    source_label="remote repo"
+  fi
+else
+  source_repo="$candidate_repo"
+  source_label="local checkout"
 fi
 
 skill_src="$source_repo/plugins/e2e/skills/use-e2e"
-
 [[ -d "$skill_src" ]] || fail "missing skill source: $skill_src"
 
 if [[ "$target" == "codex" || "$target" == "all" ]]; then
@@ -275,13 +324,14 @@ if [[ "$target" == "amp" ]]; then
 fi
 
 printf '\nDone.\n'
-printf 'Install scope:      %s\n' "$scope"
+printf 'Install scope:        %s\n' "$scope"
+printf 'Skill source:         %s\n' "$source_label"
 if [[ "$scope" == "project" ]]; then
-  printf 'Project root:       %s\n' "$project_dir"
+  printf 'Project root:         %s\n' "$project_dir"
 fi
-printf 'Codex skills path:  %s\n' "$codex_home/skills/use-e2e"
-printf 'Claude skills path: %s\n' "$claude_home/skills/use-e2e"
+printf 'Codex skills path:    %s\n' "$codex_home/skills/use-e2e"
+printf 'Claude skills path:   %s\n' "$claude_home/skills/use-e2e"
 printf 'OpenCode skills path: %s\n' "$opencode_home/skills/use-e2e"
 if [[ "$target" == "amp" ]]; then
-  printf 'Amp skill name:    %s\n' "use-e2e"
+  printf 'Amp skill name:       %s\n' "use-e2e"
 fi

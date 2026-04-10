@@ -7,7 +7,7 @@ Usage:
   e2ectl-run.sh [--bin <path>] [--cwd <dir>] [--env-file <file>] [--output <file>] [--print-command] -- <cli-args...>
 
 Options:
-  --bin             Binary or script to run (default: auto-detect built e2ectl repo checkout, then e2ectl, then hitesh-test)
+  --bin             Binary or script to run
   --cwd             Working directory to run in
   --env-file        Shell-compatible env file to source before running
   --output          File to write combined stdout/stderr to
@@ -16,7 +16,7 @@ Options:
 
 Examples:
   ./e2ectl-run.sh -- --help
-  ./e2ectl-run.sh --cwd /tmp/e2ectl-develop -- config list
+  ./e2ectl-run.sh --cwd /workspace/app -- config list
   ./e2ectl-run.sh --cwd /workspace/app --output .artifacts/run.log -- test smoke
   ./e2ectl-run.sh --bin ./bin/e2ectl --env-file .env.local -- status
 EOF
@@ -26,14 +26,6 @@ fail() {
   printf 'Error: %s\n' "$1" >&2
   exit 1
 }
-
-bin_path=""
-bin_explicit="false"
-cwd=""
-env_file=""
-output_file=""
-print_command="false"
-command_args=()
 
 resolve_dir_path() {
   (
@@ -52,16 +44,6 @@ resolve_file_path() {
 
 resolve_named_bin() {
   local bin_name="$1"
-  local search_cwd="${2:-}"
-  local local_bin=""
-
-  if [[ -n "$search_cwd" ]]; then
-    local_bin="$search_cwd/node_modules/.bin/$bin_name"
-    if [[ -x "$local_bin" ]]; then
-      printf '%s\n' "$local_bin"
-      return 0
-    fi
-  fi
 
   if command -v "$bin_name" >/dev/null 2>&1; then
     command -v "$bin_name"
@@ -76,40 +58,21 @@ resolve_repo_checkout_bin() {
   local package_json="$search_cwd/package.json"
 
   [[ -f "$package_json" ]] || return 1
-  grep -Eq '"name"[[:space:]]*:[[:space:]]*"e2ectl"' "$package_json" || return 1
+  grep -Eq '"name"[[:space:]]*:[[:space:]]*"(@e2enetworks-oss/e2ectl|e2ectl)"' "$package_json" || return 1
   [[ -f "$search_cwd/dist/app/index.js" ]] || return 1
 
   printf '%s\n' "$search_cwd/dist/app/index.js"
   return 0
 }
 
-resolve_default_bin() {
-  local candidate=""
-  local resolved_bin=""
-
-  if [[ -n "$cwd" ]]; then
-    if resolved_bin="$(resolve_repo_checkout_bin "$cwd")"; then
-      printf '%s\n' "$resolved_bin"
-      return 0
-    fi
-
-    for candidate in e2ectl hitesh-test; do
-      if [[ -x "$cwd/node_modules/.bin/$candidate" ]]; then
-        printf '%s\n' "$cwd/node_modules/.bin/$candidate"
-        return 0
-      fi
-    done
-  fi
-
-  for candidate in e2ectl hitesh-test; do
-    if resolved_bin="$(resolve_named_bin "$candidate")"; then
-      printf '%s\n' "$resolved_bin"
-      return 0
-    fi
-  done
-
-  return 1
-}
+mode="${E2E_SKILLS_MODE:-public}"
+bin_path=""
+bin_explicit="false"
+cwd=""
+env_file=""
+output_file=""
+print_command="false"
+command_args=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -149,6 +112,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+[[ "$mode" == "public" || "$mode" == "internal" ]] || fail "invalid E2E_SKILLS_MODE: $mode"
 [[ ${#command_args[@]} -gt 0 ]] || fail "missing command arguments; pass them after --"
 
 if [[ -n "$cwd" ]]; then
@@ -162,12 +126,22 @@ if [[ -n "$env_file" ]]; then
 fi
 
 if [[ "$bin_explicit" == "false" ]]; then
-  if resolved_bin="$(resolve_default_bin)"; then
-    bin_path="$resolved_bin"
-  elif [[ -n "$cwd" ]]; then
-    fail "binary not found: checked $cwd/dist/app/index.js, e2ectl and hitesh-test in PATH, and $cwd/node_modules/.bin"
-  else
-    fail "binary not found in PATH: checked e2ectl and hitesh-test"
+  if [[ "$mode" == "internal" && -n "$cwd" ]]; then
+    if resolved_bin="$(resolve_repo_checkout_bin "$cwd")"; then
+      bin_path="$resolved_bin"
+    fi
+  fi
+
+  if [[ -z "$bin_path" ]]; then
+    if resolved_bin="$(resolve_named_bin e2ectl)"; then
+      bin_path="$resolved_bin"
+    elif [[ "$mode" == "public" ]]; then
+      fail "e2ectl was not found. Rerun the installer to install or update it, or pass --bin to use a custom path."
+    elif [[ -n "$cwd" ]]; then
+      fail "e2ectl was not found. Checked $cwd/dist/app/index.js and PATH. Rerun the installer or pass --bin to use a custom path."
+    else
+      fail "e2ectl was not found in PATH. Rerun the installer or pass --bin to use a custom path."
+    fi
   fi
 fi
 
@@ -182,10 +156,8 @@ if [[ "$bin_path" == */* ]]; then
   fi
   bin_path="$(resolve_file_path "$bin_path")"
 else
-  if resolved_bin="$(resolve_named_bin "$bin_path" "$cwd")"; then
+  if resolved_bin="$(resolve_named_bin "$bin_path")"; then
     bin_path="$resolved_bin"
-  elif [[ -n "$cwd" ]]; then
-    fail "binary not found: $bin_path (checked PATH and $cwd/node_modules/.bin)"
   else
     fail "binary not found in PATH: $bin_path"
   fi
