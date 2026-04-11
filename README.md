@@ -58,34 +58,13 @@ Then give your agent a simple first task, like:
 
 Run the installer again to update the skill.
 
-If `e2ectl` is already installed:
+If `e2ectl` is already installed, interactive reruns ask before upgrading. Use `--upgrade-cli` for non-interactive upgrades, or `--skip-cli` if you manage `e2ectl` yourself.
 
-- interactive reruns ask before upgrading to a newer stable CLI
-- non-interactive reruns keep the current CLI unless you pass `--upgrade-cli`
-- `--skip-cli` lets you manage `e2ectl` yourself
+## Optional Flags
 
-## Common Variants
-
-Install for a specific target:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --target claude --force
-```
-
-Install into the current project instead of globally:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --scope project --project-dir "$PWD" --target claude --force
-```
-
-Upgrade the CLI in non-interactive environments:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
-  bash -s -- --upgrade-cli --force
-```
+- `--target claude` installs for one agent target
+- `--scope project --project-dir "$PWD"` installs into the current project
+- `--upgrade-cli` upgrades `e2ectl` in non-interactive environments
 
 ## Troubleshooting
 

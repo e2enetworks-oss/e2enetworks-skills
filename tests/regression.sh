@@ -192,6 +192,24 @@ run_installer_with_stubs() {
     bash "$repo_root/scripts/install.sh" "$@"
 }
 
+run_installer_via_stdin_with_stubs() {
+  local stub_dir="$1"
+  shift
+
+  env \
+    PATH="$(installer_path_env "$stub_dir")" \
+    FAKE_NPM_LOG="${FAKE_NPM_LOG:-}" \
+    FAKE_NPM_LATEST_VERSION="${FAKE_NPM_LATEST_VERSION:-}" \
+    FAKE_NPM_VIEW_FAIL="${FAKE_NPM_VIEW_FAIL:-}" \
+    FAKE_NPM_INSTALL_FAIL="${FAKE_NPM_INSTALL_FAIL:-}" \
+    FAKE_NPM_GLOBAL_PREFIX="${FAKE_NPM_GLOBAL_PREFIX:-}" \
+    FAKE_NPM_INSTALL_TARGET="${FAKE_NPM_INSTALL_TARGET:-}" \
+    FAKE_NPM_INSTALLED_VERSION="${FAKE_NPM_INSTALLED_VERSION:-}" \
+    FAKE_E2ECTL_VERSION="${FAKE_E2ECTL_VERSION:-}" \
+    FAKE_E2ECTL_OUTPUT="${FAKE_E2ECTL_OUTPUT:-}" \
+    bash -s -- "$@" < "$repo_root/scripts/install.sh"
+}
+
 test_install_urls() {
   local raw_url="https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh"
   local repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"
@@ -395,6 +413,34 @@ test_repo_ref_installs_branch_tag_and_commit() {
   cleanup_dir "$tmp_dir"
 
   pass "--repo-ref installs branch, tag, and commit sources"
+}
+
+test_stdin_installer_works_with_remote_source() {
+  local tmp_dir=""
+  local repo_url=""
+  local claude_home=""
+  local stub_dir=""
+
+  tmp_dir="$(mktemp -d)"
+  repo_url="$(create_remote_repo_fixture "$tmp_dir")"
+  claude_home="$tmp_dir/.claude"
+  stub_dir="$tmp_dir/stubs"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_via_stdin_with_stubs "$stub_dir" \
+    --target claude \
+    --scope global \
+    --repo-url "$repo_url" \
+    --repo-ref feature-branch \
+    --claude-home "$claude_home" >/dev/null
+
+  grep -F -q 'BRANCH_REF' "$claude_home/skills/use-e2e/SKILL.md" || \
+    fail "expected stdin installer to clone and install the requested remote repo content"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "installer works when piped into bash"
 }
 
 test_cli_missing_installs_globally() {
@@ -947,6 +993,7 @@ main() {
   test_claude_install_path
   test_project_scope_install_path
   test_repo_ref_installs_branch_tag_and_commit
+  test_stdin_installer_works_with_remote_source
   test_cli_missing_installs_globally
   test_interactive_cli_upgrade_accepts
   test_interactive_cli_upgrade_declines

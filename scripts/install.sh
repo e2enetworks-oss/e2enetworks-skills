@@ -51,6 +51,23 @@ resolve_dir_path() {
   )
 }
 
+resolve_script_dir() {
+  local script_source=""
+
+  script_source="${BASH_SOURCE[0]-}"
+  if [[ -n "$script_source" && "$script_source" != "bash" && "$script_source" != "-bash" ]]; then
+    resolve_dir_path "$(dirname -- "$script_source")"
+    return 0
+  fi
+
+  if [[ "$0" == */* ]]; then
+    resolve_dir_path "$(dirname -- "$0")"
+    return 0
+  fi
+
+  return 1
+}
+
 prompt_choice() {
   local prompt_text="$1"
   local default_value="$2"
@@ -414,8 +431,11 @@ esac
 [[ -z "$repo_dir" || -z "$repo_ref" ]] || fail "--repo-dir cannot be combined with --repo-ref"
 [[ "$skip_cli" == "false" || "$upgrade_cli" == "false" ]] || fail "--skip-cli cannot be combined with --upgrade-cli"
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-candidate_repo="$(cd -- "$script_dir/.." && pwd)"
+script_dir=""
+candidate_repo=""
+if script_dir="$(resolve_script_dir)"; then
+  candidate_repo="$(cd -- "$script_dir/.." && pwd)"
+fi
 source_repo=""
 source_label=""
 tmp_dir=""
@@ -460,7 +480,7 @@ if [[ -n "$repo_dir" ]]; then
   repo_dir="$(resolve_dir_path "$repo_dir")"
   source_repo="$repo_dir"
   source_label="local repo"
-elif [[ -n "$repo_url" || -n "$repo_ref" || ! -d "$candidate_repo/plugins/e2e" ]]; then
+elif [[ -n "$repo_url" || -n "$repo_ref" || -z "$candidate_repo" || ! -d "$candidate_repo/plugins/e2e" ]]; then
   if [[ -z "$repo_url" ]]; then
     repo_url="$official_repo_url"
   fi
