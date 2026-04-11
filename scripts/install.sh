@@ -54,7 +54,7 @@ resolve_dir_path() {
 resolve_script_dir() {
   local script_source=""
 
-  script_source="${BASH_SOURCE[0]-}"
+  script_source="${BASH_SOURCE:-}"
   if [[ -n "$script_source" && "$script_source" != "bash" && "$script_source" != "-bash" ]]; then
     resolve_dir_path "$(dirname -- "$script_source")"
     return 0
