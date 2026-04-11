@@ -1,8 +1,8 @@
 # E2E Networks Skills
 
-`use-e2e` gives your coding agent a clean way to manage E2E Networks resources through the official `@e2enetworks-oss/e2ectl` CLI.
+`use-e2e` gives your coding agent a clean way to manage E2E Networks resources with the official E2E CLI.
 
-Use it to work with nodes, volumes, VPCs, and SSH keys without building your own wrapper around the API.
+Use it to create and manage nodes, volumes, VPCs, and SSH keys from natural language requests.
 
 ## Install
 
