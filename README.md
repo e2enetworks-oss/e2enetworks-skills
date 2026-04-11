@@ -1,6 +1,8 @@
 # E2E Networks Skills
 
-`use-e2e` lets coding agents manage E2E Networks resources with the official `e2ectl` CLI.
+`use-e2e` gives your coding agent a clean way to manage E2E Networks resources through the official `@e2enetworks-oss/e2ectl` CLI.
+
+Use it to work with nodes, volumes, VPCs, and SSH keys without building your own wrapper around the API.
 
 ## Install
 
@@ -8,18 +10,49 @@
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | bash
 ```
 
-The installer is the public entry point. By default it:
+The installer:
 
 - installs the `use-e2e` skill
 - installs `@e2enetworks-oss/e2ectl` globally if it is missing
-- installs the skill globally unless you pass `--scope project`
+- works with Codex, Claude Code, OpenCode, and Amp
 
-Supported targets:
+## What You Can Ask
 
-- Codex
-- Claude Code
-- OpenCode
-- Amp
+- "List my E2E nodes and tell me which ones are stopped."
+- "Create a new Ubuntu node and attach my SSH key."
+- "Create a volume, attach it to this node, and mount it at `/data`."
+- "Attach this node to my VPC."
+- "Power-cycle this node and confirm it comes back healthy."
+- "Deploy my backend repo on this node."
+
+## First Run
+
+1. Create an API token in [E2E MyAccount > API & IAM](https://myaccount.e2enetworks.com/services/apiiam) and download the config JSON.
+2. Import it with:
+
+```bash
+e2ectl config import --file ~/Downloads/config.json
+```
+
+3. Confirm the saved profile:
+
+```bash
+e2ectl config list
+```
+
+Once a default alias, project id, and location are saved, the skill can use them for future commands.
+
+## Verify The Install
+
+```bash
+e2ectl --version
+e2ectl config list
+```
+
+Then give your agent a simple first task, like:
+
+- "Show me my saved E2E profiles."
+- "List my nodes and call out anything stopped."
 
 ## Update
 
@@ -27,35 +60,40 @@ Run the installer again to update the skill.
 
 If `e2ectl` is already installed:
 
-- interactive runs ask whether to upgrade when a newer stable version is available
-- non-interactive runs keep the current CLI unless you pass `--upgrade-cli`
+- interactive reruns ask before upgrading to a newer stable CLI
+- non-interactive reruns keep the current CLI unless you pass `--upgrade-cli`
+- `--skip-cli` lets you manage `e2ectl` yourself
 
-Use `--skip-cli` only if you want to manage `e2ectl` yourself.
+## Common Variants
 
-## What It Supports
+Install for a specific target:
 
-This repo ships one installable skill:
+```bash
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --target claude --force
+```
+
+Install into the current project instead of globally:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --scope project --project-dir "$PWD" --target claude --force
+```
+
+Upgrade the CLI in non-interactive environments:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | \
+  bash -s -- --upgrade-cli --force
+```
+
+## Troubleshooting
+
+If `e2ectl` is still missing after install, rerun the installer in the same Node/npm environment you use in your shell. The installer checks that the active `e2ectl` on your `PATH` is the one npm actually updated and will fail with guidance if your shell is pointed at a different global prefix.
+
+## Included Skill
 
 - [`use-e2e`](plugins/e2e/skills/use-e2e/SKILL.md)
-
-`use-e2e` is node-first and also covers:
-
-- node actions and lifecycle checks
-- SSH key upload and attach
-- volume create, attach, and mount
-- VPC create and attach
-- frontend and backend deployment
-- app updates, incident checks, and safe cleanup workflows
-
-## Secure Auth And Config Flow
-
-The skill keeps auth and context setup explicit:
-
-- start with `e2ectl config list`
-- use an existing profile or import a new config file
-- prefer file import when a config file already exists on disk
-- verify default project id and default location before resource changes
-- avoid printing secrets or raw config content unless the user asks
 
 ## References
 

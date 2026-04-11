@@ -188,6 +188,24 @@ read_installed_cli_version() {
   printf '%s\n' "$installed_version"
 }
 
+resolve_installed_cli_path() {
+  if command -v e2ectl >/dev/null 2>&1; then
+    command -v e2ectl
+    return 0
+  fi
+
+  return 1
+}
+
+resolve_expected_global_cli_path() {
+  local global_prefix=""
+
+  global_prefix="$(npm prefix -g 2>/dev/null)" || return 1
+  [[ -n "$global_prefix" ]] || return 1
+
+  printf '%s/bin/e2ectl\n' "$global_prefix"
+}
+
 fetch_latest_cli_version() {
   local version_output=""
   local latest_version=""
@@ -203,10 +221,39 @@ install_global_cli() {
   npm install -g @e2enetworks-oss/e2ectl@latest
 }
 
+verify_active_cli() {
+  local action_label="$1"
+  local expected_version="${2:-}"
+  local resolved_path=""
+  local expected_path=""
+  local active_version=""
+
+  if ! resolved_path="$(resolve_installed_cli_path)"; then
+    fail "$action_label completed, but e2ectl is still not available on PATH. This usually means npm installed it under a different global prefix."
+  fi
+
+  expected_path="$(resolve_expected_global_cli_path 2>/dev/null || true)"
+  if [[ -n "$expected_path" && "$resolved_path" != "$expected_path" ]]; then
+    fail "$action_label completed, but PATH still resolves e2ectl to $resolved_path instead of $expected_path. This usually means npm updated a different global prefix. Fix your PATH or switch to the correct Node/npm environment, then rerun the installer."
+  fi
+
+  if ! active_version="$(read_installed_cli_version)"; then
+    fail "$action_label completed, but the active e2ectl at $resolved_path did not report a usable version."
+  fi
+
+  if [[ -n "$expected_version" ]] && version_is_less_than "$active_version" "$expected_version"; then
+    fail "$action_label completed, but the active e2ectl on PATH is still $active_version at $resolved_path. This usually means npm updated a different global prefix. Fix your PATH or switch to the correct Node/npm environment, then rerun the installer."
+  fi
+
+  printf '%s\n' "$active_version"
+}
+
 ensure_cli_ready() {
   local cli_present="false"
   local installed_version=""
   local latest_version=""
+  local verified_version=""
+  local expected_version=""
 
   if [[ "$skip_cli" == "true" ]]; then
     cli_status="skipped (--skip-cli)"
@@ -219,15 +266,19 @@ ensure_cli_ready() {
 
   if [[ "$upgrade_cli" == "true" ]]; then
     command -v npm >/dev/null 2>&1 || fail "npm is required to upgrade @e2enetworks-oss/e2ectl. Install npm or rerun with --skip-cli."
+    expected_version="$(fetch_latest_cli_version 2>/dev/null || true)"
     install_global_cli >/dev/null || fail "failed to upgrade @e2enetworks-oss/e2ectl globally"
-    cli_status="upgraded globally"
+    verified_version="$(verify_active_cli "global e2ectl upgrade" "$expected_version")"
+    cli_status="upgraded globally ($verified_version)"
     return 0
   fi
 
   if [[ "$cli_present" == "false" ]]; then
     command -v npm >/dev/null 2>&1 || fail "npm is required to install @e2enetworks-oss/e2ectl globally. Install npm or rerun with --skip-cli."
+    expected_version="$(fetch_latest_cli_version 2>/dev/null || true)"
     install_global_cli >/dev/null || fail "failed to install @e2enetworks-oss/e2ectl globally"
-    cli_status="installed globally"
+    verified_version="$(verify_active_cli "global e2ectl install" "$expected_version")"
+    cli_status="installed globally ($verified_version)"
     return 0
   fi
 
@@ -256,7 +307,8 @@ ensure_cli_ready() {
   if [[ -t 0 && -t 1 ]]; then
     if prompt_yes_no "A newer stable e2ectl is available ($installed_version -> $latest_version). Upgrade it now? [Y/n] " "y"; then
       install_global_cli >/dev/null || fail "failed to upgrade @e2enetworks-oss/e2ectl globally"
-      cli_status="upgraded globally ($installed_version -> $latest_version)"
+      verified_version="$(verify_active_cli "global e2ectl upgrade" "$latest_version")"
+      cli_status="upgraded globally ($installed_version -> $verified_version)"
     else
       cli_status="kept existing install ($installed_version)"
     fi
