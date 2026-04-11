@@ -68,17 +68,31 @@ resolve_script_dir() {
   return 1
 }
 
+open_tty_fd() {
+  local tty_fd=""
+
+  exec {tty_fd}<> /dev/tty || return 1
+  printf '%s\n' "$tty_fd"
+}
+
 prompt_choice() {
   local prompt_text="$1"
   local default_value="$2"
   local response=""
+  local tty_fd=""
 
-  if [[ ! -t 0 || ! -t 1 ]]; then
-    return 1
+  if [[ -t 0 && -t 1 ]]; then
+    printf '%s' "$prompt_text" >&2
+    IFS= read -r response || true
+  elif tty_fd="$(open_tty_fd 2>/dev/null)"; then
+    printf '%s' "$prompt_text" >&"$tty_fd"
+    IFS= read -r response <&"$tty_fd" || true
+    exec {tty_fd}>&-
+    exec {tty_fd}<&-
+  else
+    return 2
   fi
 
-  printf '%s' "$prompt_text" >&2
-  IFS= read -r response || true
   response="${response#"${response%%[![:space:]]*}"}"
   response="${response%"${response##*[![:space:]]}"}"
 
@@ -94,13 +108,20 @@ prompt_yes_no() {
   local prompt_text="$1"
   local default_value="${2:-n}"
   local response=""
+  local tty_fd=""
 
-  if [[ ! -t 0 || ! -t 1 ]]; then
-    return 1
+  if [[ -t 0 && -t 1 ]]; then
+    printf '%s' "$prompt_text" >&2
+    IFS= read -r response || true
+  elif tty_fd="$(open_tty_fd 2>/dev/null)"; then
+    printf '%s' "$prompt_text" >&"$tty_fd"
+    IFS= read -r response <&"$tty_fd" || true
+    exec {tty_fd}>&-
+    exec {tty_fd}<&-
+  else
+    return 2
   fi
 
-  printf '%s' "$prompt_text" >&2
-  IFS= read -r response || true
   response="${response#"${response%%[![:space:]]*}"}"
   response="${response%"${response##*[![:space:]]}"}"
 
@@ -321,16 +342,26 @@ ensure_cli_ready() {
     return 0
   fi
 
-  if [[ -t 0 && -t 1 ]]; then
-    if prompt_yes_no "A newer stable e2ectl is available ($installed_version -> $latest_version). Upgrade it now? [Y/n] " "y"; then
+  local upgrade_prompt_result=0
+
+  if prompt_yes_no "A newer stable e2ectl is available ($installed_version -> $latest_version). Upgrade it now? [Y/n] " "y"; then
+    upgrade_prompt_result=0
+  else
+    upgrade_prompt_result=$?
+  fi
+
+  case "$upgrade_prompt_result" in
+    0)
       install_global_cli >/dev/null || fail "failed to upgrade @e2enetworks-oss/e2ectl globally"
       verified_version="$(verify_active_cli "global e2ectl upgrade" "$latest_version")"
       cli_status="upgraded globally ($installed_version -> $verified_version)"
-    else
+      return 0
+      ;;
+    1)
       cli_status="kept existing install ($installed_version)"
-    fi
-    return 0
-  fi
+      return 0
+      ;;
+  esac
 
   printf 'A newer stable e2ectl is available (%s -> %s). Rerun the installer interactively or pass --upgrade-cli to upgrade it.\n' "$installed_version" "$latest_version"
   return 0

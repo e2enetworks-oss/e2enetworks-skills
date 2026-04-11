@@ -196,18 +196,20 @@ run_installer_via_stdin_with_stubs() {
   local stub_dir="$1"
   shift
 
-  env \
-    PATH="$(installer_path_env "$stub_dir")" \
-    FAKE_NPM_LOG="${FAKE_NPM_LOG:-}" \
-    FAKE_NPM_LATEST_VERSION="${FAKE_NPM_LATEST_VERSION:-}" \
-    FAKE_NPM_VIEW_FAIL="${FAKE_NPM_VIEW_FAIL:-}" \
-    FAKE_NPM_INSTALL_FAIL="${FAKE_NPM_INSTALL_FAIL:-}" \
-    FAKE_NPM_GLOBAL_PREFIX="${FAKE_NPM_GLOBAL_PREFIX:-}" \
-    FAKE_NPM_INSTALL_TARGET="${FAKE_NPM_INSTALL_TARGET:-}" \
-    FAKE_NPM_INSTALLED_VERSION="${FAKE_NPM_INSTALLED_VERSION:-}" \
-    FAKE_E2ECTL_VERSION="${FAKE_E2ECTL_VERSION:-}" \
-    FAKE_E2ECTL_OUTPUT="${FAKE_E2ECTL_OUTPUT:-}" \
-    bash -s -- "$@" < "$repo_root/scripts/install.sh"
+  (
+    env \
+      PATH="$(installer_path_env "$stub_dir")" \
+      FAKE_NPM_LOG="${FAKE_NPM_LOG:-}" \
+      FAKE_NPM_LATEST_VERSION="${FAKE_NPM_LATEST_VERSION:-}" \
+      FAKE_NPM_VIEW_FAIL="${FAKE_NPM_VIEW_FAIL:-}" \
+      FAKE_NPM_INSTALL_FAIL="${FAKE_NPM_INSTALL_FAIL:-}" \
+      FAKE_NPM_GLOBAL_PREFIX="${FAKE_NPM_GLOBAL_PREFIX:-}" \
+      FAKE_NPM_INSTALL_TARGET="${FAKE_NPM_INSTALL_TARGET:-}" \
+      FAKE_NPM_INSTALLED_VERSION="${FAKE_NPM_INSTALLED_VERSION:-}" \
+      FAKE_E2ECTL_VERSION="${FAKE_E2ECTL_VERSION:-}" \
+      FAKE_E2ECTL_OUTPUT="${FAKE_E2ECTL_OUTPUT:-}" \
+      bash -s -- "$@" < "$repo_root/scripts/install.sh"
+  )
 }
 
 test_install_urls() {
