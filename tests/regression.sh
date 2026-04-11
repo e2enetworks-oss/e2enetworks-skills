@@ -122,7 +122,18 @@ fi
 
 if [[ "${1:-}" == "install" && "${2:-}" == "-g" && "${3:-}" == "@e2enetworks-oss/e2ectl@latest" ]]; then
   if [[ "${FAKE_NPM_INSTALL_FAIL:-0}" == "1" ]]; then
-    printf 'npm install failed\n' >&2
+    if [[ "${FAKE_NPM_INSTALL_ENGINE_FAIL:-0}" == "1" ]]; then
+      printf 'npm warn EBADENGINE Unsupported engine {\n' >&2
+      printf "npm warn EBADENGINE   package: '@e2enetworks-oss/e2ectl@%s',\n" "${FAKE_NPM_LATEST_VERSION:-0.0.0}" >&2
+      printf "npm warn EBADENGINE   required: { node: '%s' },\n" "${FAKE_NPM_REQUIRED_NODE:-unknown}" >&2
+      printf "npm warn EBADENGINE   current: { node: 'v%s', npm: '10.9.3' }\n" "${FAKE_NODE_VERSION:-0.0.0}" >&2
+      printf 'npm warn EBADENGINE }\n' >&2
+      printf 'npm error code EEXIST\n' >&2
+      printf 'npm error path %s/e2ectl\n' "${FAKE_NPM_INSTALL_TARGET:-/fake/bin}" >&2
+      printf 'npm error EEXIST: file already exists\n' >&2
+    else
+      printf 'npm install failed\n' >&2
+    fi
     exit 1
   fi
 
@@ -184,9 +195,12 @@ run_installer_with_stubs() {
     FAKE_NPM_LATEST_VERSION="${FAKE_NPM_LATEST_VERSION:-}" \
     FAKE_NPM_VIEW_FAIL="${FAKE_NPM_VIEW_FAIL:-}" \
     FAKE_NPM_INSTALL_FAIL="${FAKE_NPM_INSTALL_FAIL:-}" \
+    FAKE_NPM_INSTALL_ENGINE_FAIL="${FAKE_NPM_INSTALL_ENGINE_FAIL:-}" \
     FAKE_NPM_GLOBAL_PREFIX="${FAKE_NPM_GLOBAL_PREFIX:-}" \
     FAKE_NPM_INSTALL_TARGET="${FAKE_NPM_INSTALL_TARGET:-}" \
     FAKE_NPM_INSTALLED_VERSION="${FAKE_NPM_INSTALLED_VERSION:-}" \
+    FAKE_NPM_REQUIRED_NODE="${FAKE_NPM_REQUIRED_NODE:-}" \
+    FAKE_NODE_VERSION="${FAKE_NODE_VERSION:-}" \
     FAKE_E2ECTL_VERSION="${FAKE_E2ECTL_VERSION:-}" \
     FAKE_E2ECTL_OUTPUT="${FAKE_E2ECTL_OUTPUT:-}" \
     bash "$repo_root/scripts/install.sh" "$@"
@@ -203,9 +217,12 @@ run_installer_via_stdin_with_stubs() {
       FAKE_NPM_LATEST_VERSION="${FAKE_NPM_LATEST_VERSION:-}" \
       FAKE_NPM_VIEW_FAIL="${FAKE_NPM_VIEW_FAIL:-}" \
       FAKE_NPM_INSTALL_FAIL="${FAKE_NPM_INSTALL_FAIL:-}" \
+      FAKE_NPM_INSTALL_ENGINE_FAIL="${FAKE_NPM_INSTALL_ENGINE_FAIL:-}" \
       FAKE_NPM_GLOBAL_PREFIX="${FAKE_NPM_GLOBAL_PREFIX:-}" \
       FAKE_NPM_INSTALL_TARGET="${FAKE_NPM_INSTALL_TARGET:-}" \
       FAKE_NPM_INSTALLED_VERSION="${FAKE_NPM_INSTALLED_VERSION:-}" \
+      FAKE_NPM_REQUIRED_NODE="${FAKE_NPM_REQUIRED_NODE:-}" \
+      FAKE_NODE_VERSION="${FAKE_NODE_VERSION:-}" \
       FAKE_E2ECTL_VERSION="${FAKE_E2ECTL_VERSION:-}" \
       FAKE_E2ECTL_OUTPUT="${FAKE_E2ECTL_OUTPUT:-}" \
       bash -s -- "$@" < "$repo_root/scripts/install.sh"
@@ -548,6 +565,97 @@ EOF
   pass "interactive installer skips CLI upgrade when the user declines"
 }
 
+test_interactive_engine_failure_can_continue_with_current_cli() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/global/bin"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  REPO_ROOT="$repo_root" \
+  STUB_DIR="$stub_dir" \
+  NPM_LOG="$npm_log" \
+  CLAUDE_HOME="$claude_home" \
+  FAKE_E2ECTL_VERSION=0.1.0 \
+  FAKE_NPM_LATEST_VERSION=0.3.0 \
+  FAKE_NPM_REQUIRED_NODE='>=24' \
+  FAKE_NODE_VERSION=22.19.0 \
+  /usr/bin/expect <<'EOF' >/dev/null
+set timeout 10
+spawn env "PATH=$env(STUB_DIR):/usr/bin:/bin:/usr/sbin:/sbin" "FAKE_NPM_LOG=$env(NPM_LOG)" "FAKE_NPM_INSTALL_TARGET=$env(STUB_DIR)" "FAKE_NPM_INSTALL_FAIL=1" "FAKE_NPM_INSTALL_ENGINE_FAIL=1" "FAKE_E2ECTL_VERSION=$env(FAKE_E2ECTL_VERSION)" "FAKE_NPM_LATEST_VERSION=$env(FAKE_NPM_LATEST_VERSION)" "FAKE_NPM_REQUIRED_NODE=$env(FAKE_NPM_REQUIRED_NODE)" "FAKE_NODE_VERSION=$env(FAKE_NODE_VERSION)" bash "$env(REPO_ROOT)/scripts/install.sh" --target claude --scope global --repo-dir "$env(REPO_ROOT)" --claude-home "$env(CLAUDE_HOME)"
+expect "Upgrade it now?"
+send "y\r"
+expect "Upgrade Node and rerun the installer instead?"
+send "n\r"
+expect eof
+catch wait result
+exit [lindex $result 3]
+EOF
+
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected interactive engine failures to still attempt the latest CLI upgrade"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected the skill to install when the user continues after the Node upgrade prompt"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "interactive engine failures can keep the current CLI and continue"
+}
+
+test_interactive_engine_failure_can_stop_for_node_upgrade() {
+  local tmp_dir=""
+  local stub_dir=""
+  local claude_home=""
+  local output=""
+  local rc=0
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/global/bin"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  set +e
+  output="$(
+    REPO_ROOT="$repo_root" \
+    STUB_DIR="$stub_dir" \
+    CLAUDE_HOME="$claude_home" \
+    FAKE_E2ECTL_VERSION=0.1.0 \
+    FAKE_NPM_LATEST_VERSION=0.3.0 \
+    FAKE_NPM_REQUIRED_NODE='>=24' \
+    FAKE_NODE_VERSION=22.19.0 \
+    /usr/bin/expect <<'EOF' 2>&1
+set timeout 10
+spawn env "PATH=$env(STUB_DIR):/usr/bin:/bin:/usr/sbin:/sbin" "FAKE_NPM_INSTALL_TARGET=$env(STUB_DIR)" "FAKE_NPM_INSTALL_FAIL=1" "FAKE_NPM_INSTALL_ENGINE_FAIL=1" "FAKE_E2ECTL_VERSION=$env(FAKE_E2ECTL_VERSION)" "FAKE_NPM_LATEST_VERSION=$env(FAKE_NPM_LATEST_VERSION)" "FAKE_NPM_REQUIRED_NODE=$env(FAKE_NPM_REQUIRED_NODE)" "FAKE_NODE_VERSION=$env(FAKE_NODE_VERSION)" bash "$env(REPO_ROOT)/scripts/install.sh" --target claude --scope global --repo-dir "$env(REPO_ROOT)" --claude-home "$env(CLAUDE_HOME)"
+expect "Upgrade it now?"
+send "y\r"
+expect "Upgrade Node and rerun the installer instead?"
+send "y\r"
+expect eof
+catch wait result
+exit [lindex $result 3]
+EOF
+  )"
+  rc=$?
+  set -e
+
+  [[ "$rc" != "0" ]] || fail "expected choosing the Node upgrade prompt to stop the installer"
+  [[ "$output" == *"upgrade Node to >=24 and rerun the installer"* ]] || \
+    fail "expected choosing the Node upgrade prompt to print rerun guidance, got: $output"
+  [[ ! -e "$claude_home/skills/use-e2e" ]] || \
+    fail "expected choosing the Node upgrade prompt to stop before installing the skill"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "interactive engine failures can stop and ask the user to upgrade Node"
+}
+
 test_noninteractive_cli_does_not_upgrade_without_flag() {
   local tmp_dir=""
   local stub_dir=""
@@ -578,6 +686,79 @@ test_noninteractive_cli_does_not_upgrade_without_flag() {
   pass "non-interactive installer warns instead of auto-upgrading the CLI"
 }
 
+test_failed_upgrade_keeps_existing_cli_and_installs_skill() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+  local output=""
+  local rc=0
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  set +e
+  output="$(
+    FAKE_NPM_LOG="$npm_log" FAKE_NPM_INSTALL_FAIL=1 FAKE_E2ECTL_VERSION=0.1.0 FAKE_NPM_LATEST_VERSION=0.3.0 \
+      run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --upgrade-cli 2>&1
+  )"
+  rc=$?
+  set -e
+
+  [[ "$rc" == "0" ]] || fail "expected failed latest CLI upgrades to fall back to the current CLI"
+  [[ "$output" == *"Keeping installed e2ectl 0.1.0"* ]] || \
+    fail "expected failed latest CLI upgrades to keep the current CLI, got: $output"
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected the installer to still attempt the latest CLI upgrade"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected the skill to install when the latest CLI upgrade fails"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "failed latest CLI upgrades keep the current CLI and still install the skill"
+}
+
+test_failed_cli_install_continues_without_cli() {
+  local tmp_dir=""
+  local stub_dir=""
+  local npm_log=""
+  local claude_home=""
+  local output=""
+  local rc=0
+
+  tmp_dir="$(mktemp -d)"
+  stub_dir="$tmp_dir/stubs"
+  npm_log="$tmp_dir/npm.log"
+  claude_home="$tmp_dir/.claude"
+  create_cli_stub_dir "$stub_dir"
+
+  set +e
+  output="$(
+    FAKE_NPM_LOG="$npm_log" FAKE_NPM_INSTALL_FAIL=1 FAKE_NPM_LATEST_VERSION=0.3.0 \
+      run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" 2>&1
+  )"
+  rc=$?
+  set -e
+
+  [[ "$rc" == "0" ]] || fail "expected missing-CLI install failures to continue with the skill install"
+  [[ "$output" == *"Installed the skill without e2ectl"* ]] || \
+    fail "expected failed latest CLI installs to continue without e2ectl, got: $output"
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected the installer to still attempt the latest CLI install"
+  [[ "$output" == *"e2ectl status:        not installed"* ]] || \
+    fail "expected the installer summary to say the CLI was not installed after a failed latest install, got: $output"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected the skill to install even when the latest CLI install fails"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "failed latest CLI installs still install the skill without e2ectl"
+}
+
 test_noninteractive_upgrade_cli_flag_upgrades() {
   local tmp_dir=""
   local stub_dir=""
@@ -606,68 +787,80 @@ test_noninteractive_upgrade_cli_flag_upgrades() {
   pass "--upgrade-cli upgrades the global CLI without prompting"
 }
 
-test_upgrade_fails_when_active_cli_stays_old() {
+test_failed_upgrade_verification_keeps_existing_cli_and_installs_skill() {
   local tmp_dir=""
   local stub_dir=""
+  local npm_log=""
   local claude_home=""
   local output=""
   local rc=0
 
   tmp_dir="$(mktemp -d)"
   stub_dir="$tmp_dir/active/bin"
+  npm_log="$tmp_dir/npm.log"
   claude_home="$tmp_dir/.claude"
   create_cli_stub_dir "$stub_dir"
   write_fake_e2ectl "$stub_dir"
 
   set +e
   output="$(
-    FAKE_E2ECTL_VERSION=0.1.0 FAKE_NPM_LATEST_VERSION=0.3.0 FAKE_NPM_INSTALL_TARGET="$tmp_dir/off-path/bin" \
+    FAKE_NPM_LOG="$npm_log" FAKE_E2ECTL_VERSION=0.1.0 FAKE_NPM_LATEST_VERSION=0.3.0 FAKE_NPM_INSTALL_TARGET="$tmp_dir/off-path/bin" \
       run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --upgrade-cli 2>&1
   )"
   rc=$?
   set -e
 
-  [[ "$rc" != "0" ]] || fail "expected installer to fail when npm updates a different e2ectl prefix"
+  [[ "$rc" == "0" ]] || fail "expected failed latest CLI verification to fall back to the current CLI"
+  [[ "$output" == *"Keeping installed e2ectl 0.1.0"* ]] || \
+    fail "expected failed latest CLI verification to keep the current CLI, got: $output"
   [[ "$output" == *"PATH still resolves e2ectl"* ]] || \
-    fail "expected stale active CLI path failure output, got: $output"
-  [[ ! -e "$claude_home/skills/use-e2e" ]] || \
-    fail "expected installer to fail before writing the skill when the active CLI stays stale"
+    fail "expected the fallback warning to preserve the path-drift explanation, got: $output"
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected the installer to still attempt the latest CLI upgrade before falling back"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected the skill to install when latest CLI verification fails"
 
   cleanup_dir "$tmp_dir"
 
-  pass "installer fails when npm upgrades a different global prefix than the active e2ectl"
+  pass "failed latest CLI verification keeps the current CLI and still installs the skill"
 }
 
-test_upgrade_fails_when_npm_lookup_is_unavailable_and_path_stays_stale() {
+test_failed_upgrade_verification_with_lookup_failure_keeps_existing_cli_and_installs_skill() {
   local tmp_dir=""
   local stub_dir=""
+  local npm_log=""
   local claude_home=""
   local output=""
   local rc=0
 
   tmp_dir="$(mktemp -d)"
   stub_dir="$tmp_dir/active/bin"
+  npm_log="$tmp_dir/npm.log"
   claude_home="$tmp_dir/.claude"
   create_cli_stub_dir "$stub_dir"
   write_fake_e2ectl "$stub_dir"
 
   set +e
   output="$(
-    FAKE_E2ECTL_VERSION=0.1.0 FAKE_NPM_VIEW_FAIL=1 FAKE_NPM_INSTALL_TARGET="$tmp_dir/off-path/bin" \
+    FAKE_NPM_LOG="$npm_log" FAKE_E2ECTL_VERSION=0.1.0 FAKE_NPM_VIEW_FAIL=1 FAKE_NPM_INSTALL_TARGET="$tmp_dir/off-path/bin" \
       run_installer_with_stubs "$stub_dir" --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --upgrade-cli 2>&1
   )"
   rc=$?
   set -e
 
-  [[ "$rc" != "0" ]] || fail "expected installer to fail when npm view is unavailable and PATH stays stale"
+  [[ "$rc" == "0" ]] || fail "expected lookup failures with a usable current CLI to fall back instead of failing"
+  [[ "$output" == *"Keeping installed e2ectl 0.1.0"* ]] || \
+    fail "expected lookup failures during upgrade verification to keep the current CLI, got: $output"
   [[ "$output" == *"PATH still resolves e2ectl"* ]] || \
-    fail "expected stale active CLI path failure output when npm view fails, got: $output"
-  [[ ! -e "$claude_home/skills/use-e2e" ]] || \
-    fail "expected installer to fail before writing the skill when the active CLI stays stale"
+    fail "expected the fallback warning to preserve the path-drift explanation when npm lookup fails, got: $output"
+  grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
+    fail "expected the installer to still attempt the latest CLI upgrade before falling back"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected the skill to install when lookup fails and the active CLI stays stale"
 
   cleanup_dir "$tmp_dir"
 
-  pass "installer fails closed when npm view is unavailable and the active e2ectl stays stale"
+  pass "failed latest CLI verification still falls back when npm lookup is unavailable"
 }
 
 test_npm_lookup_failure_with_existing_cli_warns_and_continues() {
@@ -697,7 +890,7 @@ test_npm_lookup_failure_with_existing_cli_warns_and_continues() {
   pass "installer warns and continues when npm lookup fails but e2ectl exists"
 }
 
-test_required_cli_install_failure_fails_closed() {
+test_required_cli_install_failure_continues_without_cli() {
   local tmp_dir=""
   local stub_dir=""
   local claude_home=""
@@ -716,15 +909,15 @@ test_required_cli_install_failure_fails_closed() {
   rc=$?
   set -e
 
-  [[ "$rc" != "0" ]] || fail "expected required CLI install failure to exit non-zero"
-  [[ "$output" == *"failed to install @e2enetworks-oss/e2ectl globally"* ]] || \
-    fail "expected explicit CLI install failure output, got: $output"
-  [[ ! -e "$claude_home/skills/use-e2e" ]] || \
-    fail "expected installer to fail before writing the skill when CLI install fails"
+  [[ "$rc" == "0" ]] || fail "expected failed latest CLI installs without an existing CLI to continue"
+  [[ "$output" == *"Installed the skill without e2ectl"* ]] || \
+    fail "expected explicit fallback output when the latest CLI install fails, got: $output"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
+    fail "expected the installer to continue and write the skill when the latest CLI install fails"
 
   cleanup_dir "$tmp_dir"
 
-  pass "installer fails closed when required CLI installation fails"
+  pass "failed latest CLI installs without an existing CLI still install the skill"
 }
 
 test_skip_cli_allows_skill_install_without_cli() {
@@ -999,12 +1192,16 @@ main() {
   test_cli_missing_installs_globally
   test_interactive_cli_upgrade_accepts
   test_interactive_cli_upgrade_declines
+  test_interactive_engine_failure_can_continue_with_current_cli
+  test_interactive_engine_failure_can_stop_for_node_upgrade
   test_noninteractive_cli_does_not_upgrade_without_flag
+  test_failed_upgrade_keeps_existing_cli_and_installs_skill
+  test_failed_cli_install_continues_without_cli
   test_noninteractive_upgrade_cli_flag_upgrades
-  test_upgrade_fails_when_active_cli_stays_old
-  test_upgrade_fails_when_npm_lookup_is_unavailable_and_path_stays_stale
+  test_failed_upgrade_verification_keeps_existing_cli_and_installs_skill
+  test_failed_upgrade_verification_with_lookup_failure_keeps_existing_cli_and_installs_skill
   test_npm_lookup_failure_with_existing_cli_warns_and_continues
-  test_required_cli_install_failure_fails_closed
+  test_required_cli_install_failure_continues_without_cli
   test_skip_cli_allows_skill_install_without_cli
   test_public_docs_remove_internal_and_prerelease_language
   test_internal_docs_capture_hidden_mode_without_prerelease_language

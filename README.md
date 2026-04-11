@@ -59,6 +59,7 @@ Then give your agent a simple first task, like:
 Run the installer again to update the skill.
 
 If `e2ectl` is already installed, interactive reruns ask before upgrading. Use `--upgrade-cli` for non-interactive upgrades, or `--skip-cli` if you manage `e2ectl` yourself.
+If the latest `e2ectl` cannot be activated, the installer asks whether you want to upgrade Node and rerun. If you continue, it keeps your current CLI when possible and still updates the skill.
 
 ## Optional Flags
 
