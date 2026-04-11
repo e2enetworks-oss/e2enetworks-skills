@@ -61,11 +61,10 @@ CLI node create \
 Delete:
 
 ```bash
-CLI node delete <node-id> --alias <alias>
+CLI node delete <node-id> --force --alias <alias>
 ```
 
-Delete may require an interactive confirmation prompt.
-If running in a non-interactive terminal, do not assume the delete has completed.
+Ask for confirmation once before delete, then use `--force` for the actual command.
 
 ## Node Actions
 

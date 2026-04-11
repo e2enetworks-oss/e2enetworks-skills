@@ -1,6 +1,6 @@
 ---
 name: use-e2e
-description: Manage E2E Networks resources with the official e2ectl CLI. For testing, use the e2ectl GitHub repo develop branch as the source of truth before falling back to installed packages. Nodes are the main task. Also handle node actions, volumes, VPCs, and SSH keys with short natural-language output.
+description: Manage E2E Networks resources with the official e2ectl CLI. Nodes are the main task. Also handle node actions, volumes, VPCs, and SSH keys with short natural-language output.
 ---
 
 # use-e2e
@@ -9,75 +9,36 @@ description: Manage E2E Networks resources with the official e2ectl CLI. For tes
 
 Only use these tools:
 
-- `Bash(node *)` — run e2ectl CLI via dev build (`node dist/app/index.js ...`)
-- `Bash(e2ectl *)` — run e2ectl CLI when installed as a global package
-- `Bash(git *)` — clone or check the e2ectl source repo
-- `Bash(npm *)` — install dependencies for the e2ectl build or frontend apps
-- `Bash(make *)` — build the e2ectl CLI from source
+- `Bash(e2ectl *)` — run the installed e2ectl CLI
 - `Bash(ssh *)` — SSH into nodes and run remote commands (apt-get, certbot, nginx, systemctl, etc. all run via ssh)
 - `Bash(scp *)` — upload files to nodes
 - `Bash(ssh-keygen *)` — manage known_hosts (e.g. clear stale host keys on IP reuse)
+- `Bash(sleep *)` — wait between status checks
 - `Bash(for *)` — polling loops (e.g. wait for node Running status)
 - `Bash(until *)` — polling loops (e.g. wait for DNS propagation)
 - `Bash(dig *)` — check DNS propagation
 - `Bash(curl *)` — HTTP health checks
+- `Bash(cat *)` — read local public key files
 - `Bash(ls *)` — inspect local paths
 - `Bash(which *)` — detect installed CLI
 
 Use this skill when the user wants E2E Networks infrastructure work.
 
-Temporary testing note:
-- For testing, the source of truth is `https://github.com/e2enetworks-oss/e2ectl` on branch `develop`.
-- Clone and run the repo CLI before falling back to installed packages.
-- `hitesh-test` remains a temporary pre-release fallback until the official public package flow is final.
-- Before this skill pack is published publicly, remove `hitesh-test` fallback/install references and rely solely on `e2ectl`.
-
 ## 1. Resolve CLI
 
-For testing, resolve the CLI in this order:
-
-- use an existing local checkout of `https://github.com/e2enetworks-oss/e2ectl` on branch `develop` if one is already available
-- otherwise clone the repo and branch first, for example:
-
-```bash
-git clone --depth 1 --branch develop https://github.com/e2enetworks-oss/e2ectl.git /tmp/e2ectl-develop
-cd /tmp/e2ectl-develop
-npm install
-make build
-node dist/app/index.js config list
-```
-
-- after that bootstrap, use `node /tmp/e2ectl-develop/dist/app/index.js` with the full absolute path for all later CLI commands — do not use `cd <dir> && node dist/...` compound commands, as the `cd` prefix can trigger extra permission prompts
-- if the built repo checkout already exists under the working directory, `scripts/e2ectl-run.sh --cwd <repo-dir> -- <cli-args...>` will auto-prefer `dist/app/index.js`
-- if build output is not present yet but dependencies are installed, `npm run dev -- <cli-args...>` is acceptable for local testing only
-- only fall back to installed package commands if cloning or building the source-of-truth repo is not possible, or if the user explicitly wants published-package behavior:
-  - `e2ectl`
-  - `hitesh-test`
-  - if neither exists, ask:
-    - install globally
-    - install in this project
-
-Fallback install commands:
-
-```bash
-npm i -g hitesh-test
-```
-
-```bash
-npm i hitesh-test
-npx hitesh-test --help
-```
-
-If project-local install is chosen, use `npx hitesh-test` for later commands.
-
-The `e2ectl` source repo currently requires Node.js `24+` and `npm`.
+- Use the installed `e2ectl` CLI by default.
+- The public install and update flow is `scripts/install.sh`. If `e2ectl` is missing or outdated, ask the user to rerun the installer instead of installing or upgrading during normal skill execution.
+- If the user wants a custom binary or script, use `scripts/e2ectl-run.sh --bin <path> -- <cli-args...>`.
+- Keep runtime behavior predictable:
+  - do not silently install or upgrade `e2ectl`
+  - prefer direct `e2ectl` commands unless a custom `--bin` path is required
+  - if the wrapper reports that `e2ectl` was not found, point the user back to the installer
 
 Do not spend tokens on repeated `--help` for the commands listed below. Use the documented workflows directly. Only use `--help` if a command is missing, changed, or failing unexpectedly.
 
 To avoid permission prompts, follow these rules strictly:
-- Never use `cd <dir> && <command>` compound patterns. Always use absolute paths instead, for example `node /tmp/e2ectl-develop/dist/app/index.js <args>`.
-- When polling node status (waiting for Creating to become Running, or for power-off/power-on), run `sleep` as one Bash call and `node /tmp/e2ectl-develop/dist/app/index.js node get` as a separate Bash call. Never chain them with `&&`.
-- Each Bash call must start with a single recognized command token (node, ssh, scp, sleep, etc.) — no compound `&&` or `;` chains.
+- When polling node status (waiting for Creating to become Running, or for power-off/power-on), keep `sleep` and follow-up `e2ectl` commands as separate Bash calls.
+- Each Bash call must start with a single recognized command token (`e2ectl`, `ssh`, `scp`, `sleep`, etc.). Do not use compound `&&` or `;` chains.
 - For the full provision-deploy-SSL flow, all tools are pre-approved. Do not pause for confirmation on ssh, scp, apt-get, nginx, certbot, systemctl, or any utility command. The only action that needs user confirmation is `node delete`.
 
 ## 2. Resolve Config

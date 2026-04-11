@@ -606,6 +606,54 @@ test_skip_cli_allows_skill_install_without_cli() {
   pass "--skip-cli bypasses required CLI installation"
 }
 
+test_public_docs_remove_internal_and_prerelease_language() {
+  local readme="$repo_root/README.md"
+
+  grep -F -q 'Run the installer again to update the skill.' "$readme" || \
+    fail "expected README to describe rerunning the installer for skill updates"
+  grep -F -q '@e2enetworks-oss/e2ectl' "$readme" || \
+    fail "expected README to document the official published CLI package"
+  assert_not_contains "$readme" "develop"
+  assert_not_contains "$readme" "hitesh-test"
+  assert_not_contains "$readme" "E2E_SKILLS_MODE"
+
+  pass "README only documents the public install and update contract"
+}
+
+test_internal_docs_capture_hidden_mode_without_prerelease_language() {
+  local agents_file="$repo_root/AGENTS.md"
+
+  grep -F -q 'E2E_SKILLS_MODE=internal' "$agents_file" || \
+    fail "expected AGENTS.md to keep the hidden internal mode for maintainers"
+  assert_not_contains "$agents_file" "hitesh-test"
+  assert_not_contains "$agents_file" 'branch `develop`'
+
+  pass "AGENTS.md keeps the hidden internal mode without pre-release package drift"
+}
+
+test_skill_docs_match_installed_cli_contract() {
+  local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
+  local access_file="$repo_root/plugins/e2e/skills/use-e2e/references/access.md"
+  local maintenance_file="$repo_root/plugins/e2e/skills/use-e2e/references/maintenance.md"
+  local nodes_file="$repo_root/plugins/e2e/skills/use-e2e/references/nodes.md"
+
+  grep -F -q 'scripts/install.sh' "$skill_file" || \
+    fail "expected SKILL.md to point missing or outdated CLI users back to the installer"
+  grep -F -q 'scripts/e2ectl-run.sh --bin <path> -- <cli-args...>' "$skill_file" || \
+    fail "expected SKILL.md to document the custom --bin wrapper path"
+  grep -F -q 'CLI node delete <node-id> --force --alias <alias>' "$nodes_file" || \
+    fail "expected nodes reference to document --force deletes"
+
+  assert_not_contains "$skill_file" "develop"
+  assert_not_contains "$skill_file" "hitesh-test"
+  assert_not_contains "$access_file" "develop"
+  assert_not_contains "$access_file" "hitesh-test"
+  assert_not_contains "$maintenance_file" "develop"
+  assert_not_contains "$maintenance_file" "hitesh-test"
+
+  pass "skill references match the installed-cli public contract"
+}
+
 test_relative_bin_with_cwd() {
   local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
   local tmp_dir=""
@@ -809,6 +857,9 @@ main() {
   test_npm_lookup_failure_with_existing_cli_warns_and_continues
   test_required_cli_install_failure_fails_closed
   test_skip_cli_allows_skill_install_without_cli
+  test_public_docs_remove_internal_and_prerelease_language
+  test_internal_docs_capture_hidden_mode_without_prerelease_language
+  test_skill_docs_match_installed_cli_contract
   test_relative_bin_with_cwd
   test_public_mode_prefers_installed_e2ectl
   test_public_mode_missing_e2ectl_shows_guidance
