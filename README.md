@@ -13,6 +13,7 @@ curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/
 The installer:
 
 - installs the `use-e2e` skill
+- adds `/use-e2e` in Claude Code
 - installs `@e2enetworks-oss/e2ectl` globally if it is missing
 - works with Codex, Claude Code, OpenCode, and Amp
 
@@ -54,12 +55,14 @@ Then give your agent a simple first task, like:
 - "Show me my saved E2E profiles."
 - "List my nodes and call out anything stopped."
 
+In Claude Code, you can also run `/use-e2e`.
+
 ## Update
 
 Run the installer again to update the skill.
 
 If `e2ectl` is already installed, interactive reruns ask before upgrading. Use `--upgrade-cli` for non-interactive upgrades, or `--skip-cli` if you manage `e2ectl` yourself.
-If the latest `e2ectl` cannot be activated, the installer asks whether you want to upgrade Node and rerun. If you continue, it keeps your current CLI when possible and still updates the skill.
+If the CLI cannot be updated, the installer will guide you and keep going when it can.
 
 ## Optional Flags
 
@@ -69,7 +72,7 @@ If the latest `e2ectl` cannot be activated, the installer asks whether you want 
 
 ## Troubleshooting
 
-If `e2ectl` is still missing after install, rerun the installer in the same Node/npm environment you use in your shell. The installer checks that the active `e2ectl` on your `PATH` is the one npm actually updated and will fail with guidance if your shell is pointed at a different global prefix.
+If `e2ectl` is still missing after install, rerun the installer and follow the guidance it prints.
 
 ## Included Skill
 

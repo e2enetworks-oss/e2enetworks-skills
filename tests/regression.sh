@@ -349,17 +349,21 @@ test_claude_install_path() {
     --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --force >/dev/null
 
   [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install to create $claude_home/skills/use-e2e/SKILL.md"
+  [[ -f "$claude_home/commands/use-e2e.md" ]] || fail "expected Claude install to create $claude_home/commands/use-e2e.md"
+  grep -F -q "[\$use-e2e]($claude_home/skills/use-e2e/SKILL.md)" "$claude_home/commands/use-e2e.md" || \
+    fail "expected Claude command to point at the installed skill path"
   [[ ! -e "$claude_home/plugins/e2e" ]] || fail "expected Claude install not to write legacy plugin path $claude_home/plugins/e2e"
 
   cleanup_dir "$tmp_dir"
 
-  pass "Claude installs into the direct skills directory"
+  pass "Claude installs both the direct skill and slash command"
 }
 
 test_project_scope_install_path() {
   local tmp_dir=""
   local project_dir=""
   local stub_dir=""
+  local installed_skill_path=""
 
   tmp_dir="$(mktemp -d)"
   project_dir="$tmp_dir/app"
@@ -377,10 +381,15 @@ test_project_scope_install_path() {
 
   [[ -f "$project_dir/.claude/skills/use-e2e/SKILL.md" ]] || \
     fail "expected project scope install to create $project_dir/.claude/skills/use-e2e/SKILL.md"
+  [[ -f "$project_dir/.claude/commands/use-e2e.md" ]] || \
+    fail "expected project scope install to create $project_dir/.claude/commands/use-e2e.md"
+  installed_skill_path="$(cd -- "$project_dir/.claude/skills/use-e2e" && pwd -P)/SKILL.md"
+  grep -F -q "[\$use-e2e]($installed_skill_path)" "$project_dir/.claude/commands/use-e2e.md" || \
+    fail "expected project Claude command to point at the installed project skill path"
 
   cleanup_dir "$tmp_dir"
 
-  pass "project scope installs into the vendored project skill path"
+  pass "project scope installs both the vendored project skill and slash command"
 }
 
 test_repo_ref_installs_branch_tag_and_commit() {
@@ -646,7 +655,7 @@ EOF
   set -e
 
   [[ "$rc" != "0" ]] || fail "expected choosing the Node upgrade prompt to stop the installer"
-  [[ "$output" == *"upgrade Node to >=24 and rerun the installer"* ]] || \
+  [[ "$output" == *"upgrade Node and rerun the installer"* ]] || \
     fail "expected choosing the Node upgrade prompt to print rerun guidance, got: $output"
   [[ ! -e "$claude_home/skills/use-e2e" ]] || \
     fail "expected choosing the Node upgrade prompt to stop before installing the skill"
@@ -710,7 +719,7 @@ test_failed_upgrade_keeps_existing_cli_and_installs_skill() {
   set -e
 
   [[ "$rc" == "0" ]] || fail "expected failed latest CLI upgrades to fall back to the current CLI"
-  [[ "$output" == *"Keeping installed e2ectl 0.1.0"* ]] || \
+  [[ "$output" == *"kept your current CLI and finished installing the skill"* ]] || \
     fail "expected failed latest CLI upgrades to keep the current CLI, got: $output"
   grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
     fail "expected the installer to still attempt the latest CLI upgrade"
@@ -745,7 +754,7 @@ test_failed_cli_install_continues_without_cli() {
   set -e
 
   [[ "$rc" == "0" ]] || fail "expected missing-CLI install failures to continue with the skill install"
-  [[ "$output" == *"Installed the skill without e2ectl"* ]] || \
+  [[ "$output" == *"skill was installed, but the CLI could not be added right now"* ]] || \
     fail "expected failed latest CLI installs to continue without e2ectl, got: $output"
   grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
     fail "expected the installer to still attempt the latest CLI install"
@@ -811,10 +820,10 @@ test_failed_upgrade_verification_keeps_existing_cli_and_installs_skill() {
   set -e
 
   [[ "$rc" == "0" ]] || fail "expected failed latest CLI verification to fall back to the current CLI"
-  [[ "$output" == *"Keeping installed e2ectl 0.1.0"* ]] || \
+  [[ "$output" == *"kept your current CLI and finished installing the skill"* ]] || \
     fail "expected failed latest CLI verification to keep the current CLI, got: $output"
-  [[ "$output" == *"PATH still resolves e2ectl"* ]] || \
-    fail "expected the fallback warning to preserve the path-drift explanation, got: $output"
+  [[ "$output" == *"CLI could not be updated cleanly"* ]] || \
+    fail "expected a softer fallback warning when latest CLI verification fails, got: $output"
   grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
     fail "expected the installer to still attempt the latest CLI upgrade before falling back"
   [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
@@ -849,10 +858,10 @@ test_failed_upgrade_verification_with_lookup_failure_keeps_existing_cli_and_inst
   set -e
 
   [[ "$rc" == "0" ]] || fail "expected lookup failures with a usable current CLI to fall back instead of failing"
-  [[ "$output" == *"Keeping installed e2ectl 0.1.0"* ]] || \
+  [[ "$output" == *"kept your current CLI and finished installing the skill"* ]] || \
     fail "expected lookup failures during upgrade verification to keep the current CLI, got: $output"
-  [[ "$output" == *"PATH still resolves e2ectl"* ]] || \
-    fail "expected the fallback warning to preserve the path-drift explanation when npm lookup fails, got: $output"
+  [[ "$output" == *"CLI could not be updated cleanly"* ]] || \
+    fail "expected a softer fallback warning when lookup fails during verification, got: $output"
   grep -F -q 'install -g @e2enetworks-oss/e2ectl@latest' "$npm_log" || \
     fail "expected the installer to still attempt the latest CLI upgrade before falling back"
   [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
@@ -910,7 +919,7 @@ test_required_cli_install_failure_continues_without_cli() {
   set -e
 
   [[ "$rc" == "0" ]] || fail "expected failed latest CLI installs without an existing CLI to continue"
-  [[ "$output" == *"Installed the skill without e2ectl"* ]] || \
+  [[ "$output" == *"skill was installed, but the CLI could not be added right now"* ]] || \
     fail "expected explicit fallback output when the latest CLI install fails, got: $output"
   [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || \
     fail "expected the installer to continue and write the skill when the latest CLI install fails"

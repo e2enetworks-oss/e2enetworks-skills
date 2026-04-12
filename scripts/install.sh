@@ -185,6 +185,50 @@ copy_dir() {
   printf 'Installed: %s\n' "$dst"
 }
 
+copy_file() {
+  local src="$1"
+  local dst="$2"
+
+  if [[ -e "$dst" ]]; then
+    if [[ "$force" == "true" ]]; then
+      rm -rf "$dst"
+    elif [[ -t 0 && -t 1 ]]; then
+      if prompt_yes_no "Existing install found at $dst. Update it now? [Y/n] " "y"; then
+        rm -rf "$dst"
+      else
+        printf 'Skipped existing install: %s\n' "$dst"
+        return 0
+      fi
+    else
+      rm -rf "$dst"
+    fi
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  printf 'Installed: %s\n' "$dst"
+}
+
+install_claude_command() {
+  local skill_path="$1"
+  local command_path="$2"
+  local tmp_command=""
+
+  tmp_command="$(mktemp)"
+  cat > "$tmp_command" <<EOF
+---
+description: Manage E2E Networks resources with the installed use-e2e skill.
+---
+
+[\$use-e2e]($skill_path)
+
+Use the installed \`use-e2e\` skill for this request. It manages E2E Networks nodes, volumes, VPCs, and SSH keys.
+EOF
+
+  copy_file "$tmp_command" "$command_path"
+  rm -f "$tmp_command"
+}
+
 install_amp() {
   local src="$1"
   local -a cmd=(amp skill add "$src" --global --name use-e2e)
@@ -255,18 +299,6 @@ fetch_latest_cli_version() {
   printf '%s\n' "$latest_version"
 }
 
-read_current_node_version() {
-  local version_output=""
-  local node_version=""
-
-  command -v node >/dev/null 2>&1 || return 1
-  version_output="$(node --version 2>/dev/null)" || return 1
-  node_version="$(extract_semver "$version_output")"
-  [[ -n "$node_version" ]] || return 1
-
-  printf '%s\n' "$node_version"
-}
-
 install_global_cli() {
   npm install -g @e2enetworks-oss/e2ectl@latest
 }
@@ -284,44 +316,6 @@ extract_install_failure_summary() {
   printf '%s\n' "$summary"
 }
 
-extract_required_node_range_from_install_output() {
-  local raw_output="$1"
-  local required_node_range=""
-
-  required_node_range="$(
-    printf '%s\n' "$raw_output" |
-      sed -n "s/.*required: { node: '\\([^']*\\)' }.*/\\1/p" |
-      head -n 1
-  )"
-  [[ -n "$required_node_range" ]] || return 1
-
-  printf '%s\n' "$required_node_range"
-}
-
-extract_current_node_version_from_install_output() {
-  local raw_output="$1"
-  local current_node_version=""
-
-  current_node_version="$(
-    printf '%s\n' "$raw_output" |
-      sed -n "s/.*current: { node: 'v\\([^']*\\)'.*/\\1/p" |
-      head -n 1
-  )"
-  [[ -n "$current_node_version" ]] || return 1
-
-  printf '%s\n' "$current_node_version"
-}
-
-extract_minimum_node_major() {
-  local node_range="$1"
-  local minimum_major=""
-
-  minimum_major="$(printf '%s\n' "$node_range" | grep -Eo '[0-9]+' | head -n 1)" || return 1
-  [[ -n "$minimum_major" ]] || return 1
-
-  printf '%s\n' "$minimum_major"
-}
-
 install_failure_requires_node_upgrade() {
   local raw_output="$1"
 
@@ -330,38 +324,13 @@ install_failure_requires_node_upgrade() {
 
 maybe_prompt_for_node_upgrade() {
   local install_output="$1"
-  local required_node_range=""
-  local current_node_version=""
-  local minimum_node_major=""
   local prompt_result=2
-  local prompt_text=""
-  local fail_message=""
 
   if ! install_failure_requires_node_upgrade "$install_output"; then
     return 1
   fi
 
-  required_node_range="$(
-    extract_required_node_range_from_install_output "$install_output" 2>/dev/null || true
-  )"
-  current_node_version="$(
-    extract_current_node_version_from_install_output "$install_output" 2>/dev/null ||
-      read_current_node_version 2>/dev/null ||
-      true
-  )"
-
-  prompt_text="Latest stable e2ectl needs"
-  if [[ -n "$required_node_range" ]]; then
-    prompt_text+=" Node $required_node_range"
-  else
-    prompt_text+=" a newer Node version"
-  fi
-  if [[ -n "$current_node_version" ]]; then
-    prompt_text+=" (current: $current_node_version)"
-  fi
-  prompt_text+=". Upgrade Node and rerun the installer instead? [y/N] "
-
-  if prompt_yes_no "$prompt_text" "n"; then
+  if prompt_yes_no "This CLI update needs a newer Node version. Upgrade Node and rerun the installer instead? [y/N] " "n"; then
     prompt_result=0
   else
     prompt_result=$?
@@ -371,20 +340,7 @@ maybe_prompt_for_node_upgrade() {
     return 1
   fi
 
-  fail_message="upgrade Node"
-  if [[ -n "$required_node_range" ]]; then
-    fail_message+=" to $required_node_range"
-  fi
-  fail_message+=" and rerun the installer"
-
-  minimum_node_major="$(
-    extract_minimum_node_major "$required_node_range" 2>/dev/null || true
-  )"
-  if [[ -n "$minimum_node_major" ]]; then
-    fail_message+=". Example with nvm: nvm install $minimum_node_major && nvm use $minimum_node_major"
-  fi
-
-  fail "$fail_message"
+  fail "upgrade Node and rerun the installer"
 }
 
 verify_active_cli() {
@@ -445,27 +401,35 @@ ensure_cli_ready() {
       install_summary="$(extract_install_failure_summary "$install_output")"
       maybe_prompt_for_node_upgrade "$install_output" || true
       if [[ -n "$existing_cli_version" ]]; then
-        warn "could not upgrade to the latest stable e2ectl. Keeping installed e2ectl $existing_cli_version and continuing with skill installation. $install_summary"
-        cli_status="kept existing install ($existing_cli_version; latest upgrade failed)"
+        if install_failure_requires_node_upgrade "$install_output"; then
+          warn "The CLI could not be updated, so the installer kept your current CLI and finished installing the skill."
+        else
+          warn "The CLI could not be updated, so the installer kept your current CLI and finished installing the skill. $install_summary"
+        fi
+        cli_status="kept current CLI"
         return 0
       fi
 
-      warn "could not install the latest stable e2ectl globally. Installed the skill without e2ectl. $install_summary"
-      cli_status="not installed (latest upgrade failed)"
+      if install_failure_requires_node_upgrade "$install_output"; then
+        warn "The skill was installed, but the CLI could not be added right now."
+      else
+        warn "The skill was installed, but the CLI could not be added right now. $install_summary"
+      fi
+      cli_status="not installed"
       return 0
     fi
     if ! verified_version="$(verify_active_cli "global e2ectl upgrade" "$expected_version" 2>&1)"; then
       if [[ -n "$existing_cli_version" ]]; then
-        warn "could not activate the latest stable e2ectl after upgrade. Keeping installed e2ectl $existing_cli_version and continuing with skill installation. $verified_version"
-        cli_status="kept existing install ($existing_cli_version; latest upgrade verification failed)"
+        warn "The CLI could not be updated cleanly, so the installer kept your current CLI and finished installing the skill."
+        cli_status="kept current CLI"
         return 0
       fi
 
-      warn "could not activate the latest stable e2ectl after upgrade. Installed the skill without e2ectl. $verified_version"
-      cli_status="not installed (latest upgrade verification failed)"
+      warn "The skill was installed, but the CLI could not be added right now."
+      cli_status="not installed"
       return 0
     fi
-    cli_status="upgraded globally ($verified_version)"
+    cli_status="updated"
     return 0
   fi
 
@@ -475,20 +439,24 @@ ensure_cli_ready() {
     if ! install_output="$(install_global_cli 2>&1)"; then
       install_summary="$(extract_install_failure_summary "$install_output")"
       maybe_prompt_for_node_upgrade "$install_output" || true
-      warn "could not install the latest stable e2ectl globally. Installed the skill without e2ectl. $install_summary"
-      cli_status="not installed (latest install failed)"
+      if install_failure_requires_node_upgrade "$install_output"; then
+        warn "The skill was installed, but the CLI could not be added right now."
+      else
+        warn "The skill was installed, but the CLI could not be added right now. $install_summary"
+      fi
+      cli_status="not installed"
       return 0
     fi
     if ! verified_version="$(verify_active_cli "global e2ectl install" "$expected_version" 2>&1)"; then
-      warn "could not activate the latest stable e2ectl after install. Installed the skill without e2ectl. $verified_version"
-      cli_status="not installed (latest install verification failed)"
+      warn "The skill was installed, but the CLI could not be added right now."
+      cli_status="not installed"
       return 0
     fi
-    cli_status="installed globally ($verified_version)"
+    cli_status="installed"
     return 0
   fi
 
-  cli_status="kept existing install"
+  cli_status="kept current CLI"
 
   if ! command -v npm >/dev/null 2>&1; then
     warn "npm was not found. Keeping the installed e2ectl."
@@ -506,7 +474,7 @@ ensure_cli_ready() {
   fi
 
   if ! version_is_less_than "$installed_version" "$latest_version"; then
-    cli_status="kept existing install ($installed_version)"
+    cli_status="kept current CLI"
     return 0
   fi
 
@@ -523,20 +491,24 @@ ensure_cli_ready() {
       if ! install_output="$(install_global_cli 2>&1)"; then
         install_summary="$(extract_install_failure_summary "$install_output")"
         maybe_prompt_for_node_upgrade "$install_output" || true
-        warn "could not upgrade to the latest stable e2ectl. Keeping installed e2ectl $installed_version and continuing with skill installation. $install_summary"
-        cli_status="kept existing install ($installed_version; latest upgrade failed)"
+        if install_failure_requires_node_upgrade "$install_output"; then
+          warn "The CLI could not be updated, so the installer kept your current CLI and finished installing the skill."
+        else
+          warn "The CLI could not be updated, so the installer kept your current CLI and finished installing the skill. $install_summary"
+        fi
+        cli_status="kept current CLI"
         return 0
       fi
       if ! verified_version="$(verify_active_cli "global e2ectl upgrade" "$latest_version" 2>&1)"; then
-        warn "could not activate the latest stable e2ectl after upgrade. Keeping installed e2ectl $installed_version and continuing with skill installation. $verified_version"
-        cli_status="kept existing install ($installed_version; latest upgrade verification failed)"
+        warn "The CLI could not be updated cleanly, so the installer kept your current CLI and finished installing the skill."
+        cli_status="kept current CLI"
         return 0
       fi
-      cli_status="upgraded globally ($installed_version -> $verified_version)"
+      cli_status="updated"
       return 0
       ;;
     1)
-      cli_status="kept existing install ($installed_version)"
+      cli_status="kept current CLI"
       return 0
       ;;
   esac
@@ -722,6 +694,7 @@ fi
 
 if [[ "$target" == "claude" || "$target" == "all" ]]; then
   copy_dir "$skill_src" "$claude_home/skills/use-e2e"
+  install_claude_command "$claude_home/skills/use-e2e/SKILL.md" "$claude_home/commands/use-e2e.md"
 fi
 
 if [[ "$target" == "opencode" || "$target" == "all" ]]; then
@@ -741,6 +714,7 @@ if [[ "$scope" == "project" ]]; then
 fi
 printf 'Codex skills path:    %s\n' "$codex_home/skills/use-e2e"
 printf 'Claude skills path:   %s\n' "$claude_home/skills/use-e2e"
+printf 'Claude command path:  %s\n' "$claude_home/commands/use-e2e.md"
 printf 'OpenCode skills path: %s\n' "$opencode_home/skills/use-e2e"
 if [[ "$target" == "amp" ]]; then
   printf 'Amp skill name:       %s\n' "use-e2e"
