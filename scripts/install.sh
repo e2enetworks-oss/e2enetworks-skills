@@ -44,6 +44,20 @@ warn() {
   printf 'Warning: %s\n' "$1" >&2
 }
 
+fail_missing_skill_source() {
+  local skill_path="$1"
+
+  if [[ "$source_label" == "remote repo" ]]; then
+    fail "missing skill source: $skill_path. This installer cloned the remote default branch. If you meant a branch, tag, or commit, rerun with --repo-ref <that-ref>."
+  fi
+
+  if [[ "$source_label" == "remote repo ($default_remote_ref)" && "$repo_url" == "$official_repo_url" ]]; then
+    fail "missing skill source: $skill_path. This installer cloned $default_remote_ref. If you downloaded install.sh from a branch, tag, or commit URL, rerun with --repo-ref <that-ref>."
+  fi
+
+  fail "missing skill source: $skill_path"
+}
+
 resolve_dir_path() {
   (
     cd "$1" >/dev/null 2>&1 || exit 1
@@ -684,7 +698,7 @@ else
 fi
 
 skill_src="$source_repo/plugins/e2e/skills/use-e2e"
-[[ -d "$skill_src" ]] || fail "missing skill source: $skill_src"
+[[ -d "$skill_src" ]] || fail_missing_skill_source "$skill_src"
 
 ensure_cli_ready
 

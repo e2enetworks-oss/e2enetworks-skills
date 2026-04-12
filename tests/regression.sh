@@ -443,6 +443,60 @@ test_repo_ref_installs_branch_tag_and_commit() {
   pass "--repo-ref installs branch, tag, and commit sources"
 }
 
+test_remote_default_branch_missing_skill_explains_repo_ref() {
+  local tmp_dir=""
+  local repo_dir=""
+  local repo_url=""
+  local claude_home=""
+  local stub_dir=""
+  local output=""
+  local rc=0
+
+  tmp_dir="$(mktemp -d)"
+  repo_dir="$tmp_dir/remote-repo"
+  repo_url="file://$repo_dir"
+  claude_home="$tmp_dir/.claude"
+  stub_dir="$tmp_dir/stubs"
+  mkdir -p "$repo_dir"
+  create_cli_stub_dir "$stub_dir"
+  write_fake_e2ectl "$stub_dir"
+
+  git init -b main "$repo_dir" >/dev/null
+  git -C "$repo_dir" config user.name "Regression"
+  git -C "$repo_dir" config user.email "regression@example.com"
+  printf '# empty main\n' > "$repo_dir/README.md"
+  git -C "$repo_dir" add README.md
+  git -C "$repo_dir" commit -m "empty main" >/dev/null
+
+  git -C "$repo_dir" checkout -b feature-with-skill >/dev/null
+  write_minimal_skill_repo "$repo_dir" "BRANCH_ONLY"
+  git -C "$repo_dir" add .
+  git -C "$repo_dir" commit -m "branch adds skill" >/dev/null
+  git -C "$repo_dir" checkout main >/dev/null
+
+  set +e
+  output="$(
+    FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
+      --target claude \
+      --scope global \
+      --repo-url "$repo_url" \
+      --claude-home "$claude_home" \
+      --force 2>&1
+  )"
+  rc="$?"
+  set -e
+
+  [[ "$rc" != "0" ]] || fail "expected remote default branch installs without the skill to fail"
+  [[ "$output" == *"cloned the remote default branch"* ]] || \
+    fail "expected missing skill source failure to explain the default-branch clone, got: $output"
+  [[ "$output" == *"--repo-ref <that-ref>"* ]] || \
+    fail "expected missing skill source failure to tell the user to rerun with --repo-ref, got: $output"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "missing remote skill source explains how to rerun with --repo-ref"
+}
+
 test_stdin_installer_works_with_remote_source() {
   local tmp_dir=""
   local repo_url=""
@@ -1197,6 +1251,7 @@ main() {
   test_claude_install_path
   test_project_scope_install_path
   test_repo_ref_installs_branch_tag_and_commit
+  test_remote_default_branch_missing_skill_explains_repo_ref
   test_stdin_installer_works_with_remote_source
   test_cli_missing_installs_globally
   test_interactive_cli_upgrade_accepts
