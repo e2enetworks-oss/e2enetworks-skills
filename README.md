@@ -10,50 +10,35 @@ Use it to create and manage nodes, volumes, VPCs, and SSH keys from natural lang
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | bash
 ```
 
-The installer:
-
-- installs the `use-e2e` skill
-- adds `/use-e2e` in Claude Code
-- installs `@e2enetworks-oss/e2ectl` globally if it is missing
-- works with Codex, Claude Code, OpenCode, and Amp
-
-## What You Can Ask
-
-- "List my E2E nodes and tell me which ones are stopped."
-- "Create a new Ubuntu node and attach my SSH key."
-- "Create a volume, attach it to this node, and mount it at `/data`."
-- "Attach this node to my VPC."
-- "Power-cycle this node and confirm it comes back healthy."
-- "Deploy my backend repo on this node."
+This installs the skill and sets up `@e2enetworks-oss/e2ectl` if needed.
 
 ## First Run
 
 1. Create an API token in [E2E MyAccount > API & IAM](https://myaccount.e2enetworks.com/services/apiiam) and download the config JSON.
-2. Import it with:
+2. Import it:
 
 ```bash
 e2ectl config import --file ~/Downloads/config.json
 ```
 
-3. Confirm the saved profile:
-
-```bash
-e2ectl config list
-```
-
-Once a default alias, project id, and location are saved, the skill can use them for future commands.
-
-## Verify The Install
+3. Verify your setup:
 
 ```bash
 e2ectl --version
 e2ectl config list
 ```
 
-Then give your agent a simple first task, like:
+Once a default alias, project id, and location are saved, the skill can use them in future requests.
+
+## What You Can Ask
 
 - "Show me my saved E2E profiles."
 - "List my nodes and call out anything stopped."
+- "Create a new Ubuntu node and attach my SSH key."
+- "Create a volume, attach it to this node, and mount it at `/data`."
+- "Attach this node to my VPC."
+- "Power-cycle this node and confirm it comes back healthy."
+- "Deploy my backend repo on this node."
 
 In Claude Code, you can also run `/use-e2e`.
 
@@ -61,8 +46,7 @@ In Claude Code, you can also run `/use-e2e`.
 
 Run the installer again to update the skill.
 
-If `e2ectl` is already installed, interactive reruns ask before upgrading. Use `--upgrade-cli` for non-interactive upgrades, or `--skip-cli` if you manage `e2ectl` yourself.
-If the CLI cannot be updated, the installer will guide you and keep going when it can.
+Use `--upgrade-cli` for non-interactive CLI upgrades, or `--skip-cli` if you manage `e2ectl` yourself.
 
 ## Optional Flags
 
@@ -74,13 +58,8 @@ If the CLI cannot be updated, the installer will guide you and keep going when i
 
 If `e2ectl` is still missing after install, rerun the installer and follow the guidance it prints.
 
-## Included Skill
-
-- [`use-e2e`](plugins/e2e/skills/use-e2e/SKILL.md)
-
 ## References
 
-- [Agent Skills Specification](https://agentskills.io/specification)
 - [E2E Networks Docs](https://docs.e2enetworks.com)
 
 ## License
