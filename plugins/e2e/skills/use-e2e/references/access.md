@@ -1,55 +1,26 @@
 # Access
 
-Temporary testing note:
-- For testing, the source of truth is `https://github.com/e2enetworks-oss/e2ectl` on branch `develop`.
-- Clone and run that repo before falling back to installed package commands.
-- `hitesh-test` is temporary and exists only for pre-release fallback testing.
-- Before public release of this skill pack, remove `hitesh-test` fallback/install references and depend only on the official published `e2ectl` package.
-
-In this file, `CLI` means:
-
-- `node dist/app/index.js` from a cloned `e2ectl` `develop` checkout, or
-- `npm run dev --` from that checkout for local testing only when `dist/` is not built yet, or
-- `e2ectl`, or
-- `hitesh-test`, or
-- `npx hitesh-test` after project-local install
+In this file, `CLI` means `e2ectl` (installed globally via `npm install -g @e2enetworks-oss/e2ectl`).
 
 Do not use repeated `--help` calls for the commands listed here. Use these direct commands first.
 
 ## Install
 
-Start with the testing repo first:
+Check if `e2ectl` is already installed:
 
 ```bash
-git clone --depth 1 --branch develop https://github.com/e2enetworks-oss/e2ectl.git /tmp/e2ectl-develop
-cd /tmp/e2ectl-develop
-npm install
-make build
-node dist/app/index.js config list
+which e2ectl
 ```
 
-If the repo is already cloned locally, prefer updating or reusing that checkout on `develop` instead of cloning a second copy.
+If not found, ask the user via the `AskUserQuestion` tool (button-style — never as plain text):
 
-If cloning or building the repo is not possible, ask:
+- question: `e2ectl CLI is not installed. How should I install it?`
+- header: `Install e2ectl`
+- options:
+  - `Global` — `npm install -g @e2enetworks-oss/e2ectl` (available system-wide as `e2ectl`)
+  - `Project` — `npm i @e2enetworks-oss/e2ectl` (used via `npx e2ectl`)
 
-```text
-Do you want to install the npm package globally or in this project?
-```
-
-Global:
-
-```bash
-npm i -g hitesh-test
-```
-
-Project:
-
-```bash
-npm i hitesh-test
-npx hitesh-test --help
-```
-
-Remove the temporary package instructions above before public release, once repo-first testing is no longer needed and the official published `e2ectl` package is the only supported path.
+Run the matching `npm` command based on the selected option. If project-local, use `npx e2ectl` for later commands.
 
 ## Config
 

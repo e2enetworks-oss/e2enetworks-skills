@@ -7,7 +7,7 @@ Usage:
   e2ectl-run.sh [--bin <path>] [--cwd <dir>] [--env-file <file>] [--output <file>] [--print-command] -- <cli-args...>
 
 Options:
-  --bin             Binary or script to run (default: auto-detect built e2ectl repo checkout, then e2ectl, then hitesh-test)
+  --bin             Binary or script to run (default: auto-detect e2ectl)
   --cwd             Working directory to run in
   --env-file        Shell-compatible env file to source before running
   --output          File to write combined stdout/stderr to
@@ -93,7 +93,7 @@ resolve_default_bin() {
       return 0
     fi
 
-    for candidate in e2ectl hitesh-test; do
+    for candidate in e2ectl; do
       if [[ -x "$cwd/node_modules/.bin/$candidate" ]]; then
         printf '%s\n' "$cwd/node_modules/.bin/$candidate"
         return 0
@@ -101,7 +101,7 @@ resolve_default_bin() {
     done
   fi
 
-  for candidate in e2ectl hitesh-test; do
+  for candidate in e2ectl; do
     if resolved_bin="$(resolve_named_bin "$candidate")"; then
       printf '%s\n' "$resolved_bin"
       return 0
@@ -165,9 +165,9 @@ if [[ "$bin_explicit" == "false" ]]; then
   if resolved_bin="$(resolve_default_bin)"; then
     bin_path="$resolved_bin"
   elif [[ -n "$cwd" ]]; then
-    fail "binary not found: checked $cwd/dist/app/index.js, e2ectl and hitesh-test in PATH, and $cwd/node_modules/.bin"
+    fail "binary not found: checked $cwd/dist/app/index.js and e2ectl in PATH, and $cwd/node_modules/.bin"
   else
-    fail "binary not found in PATH: checked e2ectl and hitesh-test"
+    fail "binary not found in PATH: checked e2ectl"
   fi
 fi
 

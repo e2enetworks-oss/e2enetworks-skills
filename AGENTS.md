@@ -6,34 +6,15 @@ Use it for node management first. It also supports node actions, volumes, VPCs, 
 
 ## Fast Rules
 
-Temporary testing note:
-- For testing, the source of truth is `https://github.com/e2enetworks-oss/e2ectl` on branch `develop`.
-- Clone and run that repo before falling back to installed packages.
-- `hitesh-test` is a temporary pre-release npm package used only as fallback testing coverage until the official `e2ectl` package is published.
-- Before this skill pack is made public, remove `hitesh-test` fallback/install references and rely solely on the official `e2ectl` package.
-
-1. Resolve the CLI in this order:
-   - existing local `e2ectl` repo checkout on `develop`
-   - clone `https://github.com/e2enetworks-oss/e2ectl.git` branch `develop`
-   - `npm install`
-   - `make build`
-   - `node dist/app/index.js config list`
-   - use `node dist/app/index.js` for later commands from that checkout
-   - if repo bootstrap is not possible or the user explicitly wants package testing:
-     - `e2ectl`
-     - `hitesh-test`
-   - if neither package CLI exists, ask:
-     `Install the npm package globally or in this project?`
-   - global:
-     ```bash
-     npm i -g hitesh-test
+1. Resolve the CLI:
+   - check if `e2ectl` is already installed
+   - if not found, ask the user:
      ```
-   - project:
-     ```bash
-     npm i hitesh-test
-     npx hitesh-test --help
+     e2ectl CLI is not installed. Install it globally or in this project?
+     - Global: npm install -g @e2enetworks-oss/e2ectl
+     - Project: npm i @e2enetworks-oss/e2ectl
      ```
-   - `npm run dev -- <cli-args...>` is acceptable for local testing only when the cloned repo has dependencies installed but `dist/` has not been built yet
+   - if project-local, use `npx e2ectl` for later commands
 2. Run `config list` before resource commands.
 3. If saved profiles exist, ask whether to use an existing profile or import a new one.
 4. If no usable config exists, ask:

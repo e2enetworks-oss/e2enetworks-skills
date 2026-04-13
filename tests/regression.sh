@@ -126,26 +126,21 @@ test_project_scope_install_path() {
 test_claude_skill_allowed_tools() {
   local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
 
-  grep -F -q 'Bash(git *)' "$skill_file" || fail "expected Claude skill to pre-allow git commands for repo-first testing"
-  grep -F -q 'Bash(npm *)' "$skill_file" || fail "expected Claude skill to pre-allow npm commands for repo bootstrap"
-  grep -F -q 'Bash(make *)' "$skill_file" || fail "expected Claude skill to pre-allow make commands for repo bootstrap"
-  grep -F -q 'Bash(node *)' "$skill_file" || fail "expected Claude skill to pre-allow node commands for repo CLI execution"
-  grep -F -q 'Bash(e2ectl *)' "$skill_file" || fail "expected Claude skill to keep pre-allowing direct e2ectl commands"
-  grep -F -q 'Bash(hitesh-test *)' "$skill_file" || fail "expected Claude skill to keep pre-allowing fallback hitesh-test commands"
+  grep -F -q 'Bash(e2ectl *)' "$skill_file" || fail "expected Claude skill to pre-allow e2ectl commands"
+  grep -F -q 'Bash(npm *)' "$skill_file" || fail "expected Claude skill to pre-allow npm commands"
 
-  pass "Claude skill pre-allows the repo-first and fallback CLI command patterns"
+  pass "Claude skill pre-allows the e2ectl CLI command patterns"
 }
 
 test_skill_documents_repo_first_testing() {
   local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
   local access_file="$repo_root/plugins/e2e/skills/use-e2e/references/access.md"
 
-  grep -F -q 'https://github.com/e2enetworks-oss/e2ectl' "$skill_file" || fail "expected SKILL.md to document the e2ectl source-of-truth repo"
-  grep -F -q 'branch `develop`' "$skill_file" || fail "expected SKILL.md to document the develop branch as the testing source of truth"
-  grep -F -q 'git clone --depth 1 --branch develop https://github.com/e2enetworks-oss/e2ectl.git /tmp/e2ectl-develop' "$access_file" || \
-    fail "expected access reference to document cloning the develop branch before running CLI commands"
+  grep -F -q '@e2enetworks-oss/e2ectl' "$skill_file" || fail "expected SKILL.md to document the official npm package"
+  grep -F -q 'npm install -g @e2enetworks-oss/e2ectl' "$access_file" || \
+    fail "expected access reference to document installing the official npm package"
 
-  pass "skill docs describe repo-first testing from the e2ectl develop branch"
+  pass "skill docs describe installing the official @e2enetworks-oss/e2ectl package"
 }
 
 test_relative_bin_with_cwd() {
@@ -189,14 +184,14 @@ test_local_cli_beats_global_cli_under_cwd() {
   global_dir="$tmp_dir/global"
   mkdir -p "$project_dir/node_modules/.bin" "$global_dir"
 
-  printf '%s\n' '#!/usr/bin/env bash' 'echo LOCAL_HITESH' > "$project_dir/node_modules/.bin/hitesh-test"
-  chmod +x "$project_dir/node_modules/.bin/hitesh-test"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo LOCAL_E2ECTL' > "$project_dir/node_modules/.bin/e2ectl"
+  chmod +x "$project_dir/node_modules/.bin/e2ectl"
   printf '%s\n' '#!/usr/bin/env bash' 'echo GLOBAL_E2ECTL' > "$global_dir/e2ectl"
   chmod +x "$global_dir/e2ectl"
 
   output="$(PATH="$global_dir:/usr/bin:/bin:/usr/sbin:/sbin" "$script_path" --cwd "$project_dir" -- noop)"
 
-  [[ "$output" == "LOCAL_HITESH" ]] || fail "expected project-local CLI to beat global CLI under --cwd, got: $output"
+  [[ "$output" == "LOCAL_E2ECTL" ]] || fail "expected project-local CLI to beat global CLI under --cwd, got: $output"
 
   rm -rf "$tmp_dir"
 

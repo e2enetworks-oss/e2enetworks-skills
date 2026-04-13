@@ -173,23 +173,8 @@ Do not use:
 - `--key`
 - `node attach`
 
-## Publish Note
-
-Testing source of truth:
+## Install
 
 ```bash
-git clone --depth 1 --branch develop https://github.com/e2enetworks-oss/e2ectl.git /tmp/e2ectl-develop
-cd /tmp/e2ectl-develop
-npm install
-make build
-node dist/app/index.js config list
+npm install -g @e2enetworks-oss/e2ectl
 ```
-
-Current fallback npm package:
-
-```bash
-npm i -g hitesh-test
-```
-
-This package is temporary and used only for pre-release testing.
-Before the skill pack is made public, switch the docs and skill instructions to depend only on the official published `e2ectl` package.
