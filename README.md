@@ -48,13 +48,6 @@ From that point on, the skill uses your saved alias, project id, and location fo
 
 In Claude Code, you can also run `/use-e2e`.
 
-## Skill surface
-
-This repo ships one installable skill:
-
-- [`use-e2e`](plugins/e2e/skills/use-e2e/SKILL.md)
-
-`use-e2e` is node-first. Intent routing is defined in `SKILL.md`, and execution details are split into action-oriented references.
 
 ## Workflow coverage
 
