@@ -14,10 +14,12 @@ Only use these tools:
 - `Bash(ssh *)` — SSH into nodes and run remote commands (apt-get, certbot, nginx, systemctl, etc. all run via ssh)
 - `Bash(scp *)` — upload files to nodes
 - `Bash(ssh-keygen *)` — manage known_hosts (e.g. clear stale host keys on IP reuse)
+- `Bash(sleep *)` — wait between status checks
 - `Bash(for *)` — polling loops (e.g. wait for node Running status)
 - `Bash(until *)` — polling loops (e.g. wait for DNS propagation)
 - `Bash(dig *)` — check DNS propagation
 - `Bash(curl *)` — HTTP health checks
+- `Bash(cat *)` — read local public key files
 - `Bash(ls *)` — inspect local paths
 - `Bash(which *)` — detect installed CLI
 

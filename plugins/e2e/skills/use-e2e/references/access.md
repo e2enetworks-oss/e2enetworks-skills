@@ -38,7 +38,7 @@ If profiles already exist, ask:
 Use an existing profile or import a new one?
 ```
 
-After the profile choice, always check whether these defaults are present in the selected config/profile:
+After the profile choice, always check whether these defaults are present in the selected config or profile:
 
 - project id
 - location
