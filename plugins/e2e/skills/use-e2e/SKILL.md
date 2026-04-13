@@ -1,6 +1,6 @@
 ---
 name: use-e2e
-description: Manage E2E Networks resources with the official e2ectl CLI (`npm install -g @e2enetworks-oss/e2ectl`). Nodes are the main task. Also handle node actions, volumes, VPCs, and SSH keys with short natural-language output.
+description: Manage E2E Networks resources with the official e2ectl CLI.
 ---
 
 # use-e2e
