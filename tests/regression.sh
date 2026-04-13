@@ -82,6 +82,16 @@ create_remote_repo_fixture() {
   printf 'file://%s\n' "$repo_dir"
 }
 
+copy_installer_to_temp() {
+  local fixture_root="$1"
+  local script_copy="$fixture_root/install.sh"
+
+  cp "$repo_root/scripts/install.sh" "$script_copy"
+  chmod +x "$script_copy"
+
+  printf '%s\n' "$script_copy"
+}
+
 create_cli_stub_dir() {
   local stub_dir="$1"
 
@@ -234,15 +244,11 @@ test_install_urls() {
   local repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"
 
   grep -F -q "$raw_url" "$repo_root/README.md" || fail "expected README to keep the official raw install URL"
-  assert_contains_count "$repo_root/rfc.md" "$raw_url" 3
-  assert_contains_count "$repo_root/rfc.md" "$repo_url" 3
   assert_contains_count "$repo_root/scripts/install.sh" "$raw_url" 1
   grep -F -q "$repo_url" "$repo_root/scripts/install.sh" || fail "expected installer to keep the official repository URL"
 
   assert_not_contains "$repo_root/README.md" "<OWNER>/<REPO>"
   assert_not_contains "$repo_root/README.md" "<ORG>"
-  assert_not_contains "$repo_root/rfc.md" "<OWNER>/<REPO>"
-  assert_not_contains "$repo_root/rfc.md" "REPLACE_ME"
 
   pass "install URLs stay pinned to the official repository"
 }
@@ -250,197 +256,131 @@ test_install_urls() {
 test_install_script_supported_targets() {
   local install_script="$repo_root/scripts/install.sh"
 
-  grep -F -q 'codex|claude|claude-code|opencode|open-code|amp|all' "$install_script" || \
+  grep -F -q 'target: codex | claude | claude-code | cursor | opencode | open-code | amp | all' "$install_script" || \
     fail "expected installer usage text to advertise the simplified target list"
-  grep -F -q '[--scope global|project]' "$install_script" || \
-    fail "expected installer usage text to advertise install scope selection"
-  grep -F -q '[--repo-ref <branch|tag|commit>]' "$install_script" || \
-    fail "expected installer usage text to advertise remote ref selection"
-  grep -F -q '[--skip-cli] [--upgrade-cli]' "$install_script" || \
-    fail "expected installer usage text to advertise CLI lifecycle flags"
-  grep -F -q 'official_repo_url="https://github.com/e2enetworks-oss/e2enetworks-skills.git"' "$install_script" || \
-    fail "expected installer to default to the official repo URL"
-  grep -F -q 'default_remote_ref="main"' "$install_script" || \
+  grep -F -q 'The e2ectl CLI is installed on first use of the skill, not here.' "$install_script" || \
+    fail "expected installer to document the first-use CLI flow"
+  grep -F -q 'env overrides: CODEX_HOME, CLAUDE_HOME, CURSOR_HOME, OPENCODE_HOME, REPO_URL, REPO_REF' "$install_script" || \
+    fail "expected installer to advertise the supported environment overrides"
+  grep -F -q 'case "$target" in claude-code) target=claude ;; open-code) target=opencode ;; esac' "$install_script" || \
+    fail "expected installer to normalize target aliases"
+  grep -F -q 'repo_ref="${REPO_REF:-main}"' "$install_script" || \
     fail "expected installer to default remote installs to the main branch"
-  grep -F -q 'Install skills globally or in this project?' "$install_script" || \
-    fail "expected installer to prompt for project vs global scope"
-  grep -F -q 'A newer stable e2ectl is available' "$install_script" || \
-    fail "expected installer to prompt for CLI upgrades in interactive mode"
 
-  pass "installer supports simplified targets, remote refs, and CLI lifecycle flags"
+  pass "installer documents the simplified target and first-use CLI contract"
 }
 
-test_missing_scope_defaults_to_global_without_tty() {
+test_all_targets_install_to_expected_paths() {
+  local tmp_dir=""
+  local codex_home=""
+  local claude_home=""
+  local cursor_home=""
+  local opencode_home=""
+
+  tmp_dir="$(mktemp -d)"
+  codex_home="$tmp_dir/codex"
+  claude_home="$tmp_dir/.claude"
+  cursor_home="$tmp_dir/.cursor"
+  opencode_home="$tmp_dir/.config/opencode"
+
+  CODEX_HOME="$codex_home" \
+  CLAUDE_HOME="$claude_home" \
+  CURSOR_HOME="$cursor_home" \
+  OPENCODE_HOME="$opencode_home" \
+    bash "$repo_root/scripts/install.sh" all >/dev/null
+
+  [[ -f "$codex_home/skills/use-e2e/SKILL.md" ]] || fail "expected Codex install path"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install path"
+  [[ -f "$cursor_home/skills/use-e2e/SKILL.md" ]] || fail "expected Cursor install path"
+  [[ -f "$opencode_home/skills/use-e2e/SKILL.md" ]] || fail "expected OpenCode install path"
+
+  cleanup_dir "$tmp_dir"
+
+  pass "installer copies the skill into every supported agent path"
+}
+
+test_target_aliases_install_expected_paths() {
   local tmp_dir=""
   local claude_home=""
-  local stub_dir=""
+  local opencode_home=""
 
   tmp_dir="$(mktemp -d)"
   claude_home="$tmp_dir/.claude"
-  stub_dir="$tmp_dir/stubs"
-  create_cli_stub_dir "$stub_dir"
-  write_fake_e2ectl "$stub_dir"
+  opencode_home="$tmp_dir/.config/opencode"
 
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --repo-dir "$repo_root" \
-    --claude-home "$claude_home" >/dev/null
+  CLAUDE_HOME="$claude_home" bash "$repo_root/scripts/install.sh" claude-code >/dev/null
+  OPENCODE_HOME="$opencode_home" bash "$repo_root/scripts/install.sh" open-code >/dev/null
 
-  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected missing --scope to default to a global install"
+  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected claude-code alias to install into Claude home"
+  [[ -f "$opencode_home/skills/use-e2e/SKILL.md" ]] || fail "expected open-code alias to install into OpenCode home"
 
   cleanup_dir "$tmp_dir"
 
-  pass "installer defaults to global scope outside interactive terminals"
+  pass "installer target aliases resolve to the expected agent homes"
 }
 
-test_rerun_updates_existing_install_without_force() {
+test_bad_target_fails_fast() {
   local tmp_dir=""
-  local repo_one=""
-  local repo_two=""
-  local claude_home=""
-  local installed_skill=""
-  local stub_dir=""
+  local output=""
+  local rc=0
 
   tmp_dir="$(mktemp -d)"
-  repo_one="$tmp_dir/repo-one"
-  repo_two="$tmp_dir/repo-two"
-  claude_home="$tmp_dir/.claude"
-  installed_skill="$claude_home/skills/use-e2e/SKILL.md"
-  stub_dir="$tmp_dir/stubs"
-  create_cli_stub_dir "$stub_dir"
-  write_fake_e2ectl "$stub_dir"
+  set +e
+  output="$(bash "$repo_root/scripts/install.sh" definitely-not-a-target 2>&1)"
+  rc=$?
+  set -e
 
-  write_minimal_skill_repo "$repo_one" "FIRST_INSTALL"
-  write_minimal_skill_repo "$repo_two" "SECOND_INSTALL"
-
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --scope global \
-    --repo-dir "$repo_one" \
-    --claude-home "$claude_home" >/dev/null
-
-  grep -F -q 'FIRST_INSTALL' "$installed_skill" || fail "expected first install marker"
-
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --scope global \
-    --repo-dir "$repo_two" \
-    --claude-home "$claude_home" >/dev/null
-
-  grep -F -q 'SECOND_INSTALL' "$installed_skill" || fail "expected rerun installer to refresh the installed skill"
+  [[ "$rc" != "0" ]] || fail "expected invalid target to fail"
+  [[ "$output" == *"bad target: definitely-not-a-target"* ]] || fail "expected invalid target guidance, got: $output"
 
   cleanup_dir "$tmp_dir"
 
-  pass "rerunning the installer updates an existing install without --force"
+  pass "installer fails fast for invalid targets"
 }
 
-test_claude_install_path() {
-  local tmp_dir=""
-  local claude_home=""
-  local stub_dir=""
-
-  tmp_dir="$(mktemp -d)"
-  claude_home="$tmp_dir/.claude"
-  stub_dir="$tmp_dir/stubs"
-  create_cli_stub_dir "$stub_dir"
-  write_fake_e2ectl "$stub_dir"
-
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude --scope global --repo-dir "$repo_root" --claude-home "$claude_home" --force >/dev/null
-
-  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install to create $claude_home/skills/use-e2e/SKILL.md"
-  [[ -f "$claude_home/commands/use-e2e.md" ]] || fail "expected Claude install to create $claude_home/commands/use-e2e.md"
-  grep -F -q "[\$use-e2e]($claude_home/skills/use-e2e/SKILL.md)" "$claude_home/commands/use-e2e.md" || \
-    fail "expected Claude command to point at the installed skill path"
-  [[ ! -e "$claude_home/plugins/e2e" ]] || fail "expected Claude install not to write legacy plugin path $claude_home/plugins/e2e"
-
-  cleanup_dir "$tmp_dir"
-
-  pass "Claude installs both the direct skill and slash command"
-}
-
-test_project_scope_install_path() {
-  local tmp_dir=""
-  local project_dir=""
-  local stub_dir=""
-  local installed_skill_path=""
-
-  tmp_dir="$(mktemp -d)"
-  project_dir="$tmp_dir/app"
-  stub_dir="$tmp_dir/stubs"
-  mkdir -p "$project_dir"
-  create_cli_stub_dir "$stub_dir"
-  write_fake_e2ectl "$stub_dir"
-
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --scope project \
-    --project-dir "$project_dir" \
-    --repo-dir "$repo_root" \
-    --force >/dev/null
-
-  [[ -f "$project_dir/.claude/skills/use-e2e/SKILL.md" ]] || \
-    fail "expected project scope install to create $project_dir/.claude/skills/use-e2e/SKILL.md"
-  [[ -f "$project_dir/.claude/commands/use-e2e.md" ]] || \
-    fail "expected project scope install to create $project_dir/.claude/commands/use-e2e.md"
-  installed_skill_path="$(cd -- "$project_dir/.claude/skills/use-e2e" && pwd -P)/SKILL.md"
-  grep -F -q "[\$use-e2e]($installed_skill_path)" "$project_dir/.claude/commands/use-e2e.md" || \
-    fail "expected project Claude command to point at the installed project skill path"
-
-  cleanup_dir "$tmp_dir"
-
-  pass "project scope installs both the vendored project skill and slash command"
-}
-
-test_repo_ref_installs_branch_tag_and_commit() {
+test_repo_ref_installs_branch_tag_and_main() {
   local tmp_dir=""
   local repo_url=""
-  local commit_sha=""
+  local script_copy=""
   local branch_home=""
   local tag_home=""
-  local commit_home=""
-  local stub_dir=""
+  local main_home=""
 
   tmp_dir="$(mktemp -d)"
   repo_url="$(create_remote_repo_fixture "$tmp_dir")"
-  commit_sha="$(cat "$tmp_dir/commit-sha.txt")"
+  script_copy="$(copy_installer_to_temp "$tmp_dir")"
   branch_home="$tmp_dir/branch-home"
   tag_home="$tmp_dir/tag-home"
-  commit_home="$tmp_dir/commit-home"
-  stub_dir="$tmp_dir/stubs"
-  create_cli_stub_dir "$stub_dir"
-  write_fake_e2ectl "$stub_dir"
+  main_home="$tmp_dir/main-home"
 
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --scope global \
-    --repo-url "$repo_url" \
-    --repo-ref feature-branch \
-    --claude-home "$branch_home" >/dev/null
+  REPO_URL="$repo_url" REPO_REF="feature-branch" CLAUDE_HOME="$branch_home" \
+    bash "$script_copy" claude >/dev/null
 
   grep -F -q 'BRANCH_REF' "$branch_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref branch install to use branch content"
 
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --scope global \
-    --repo-url "$repo_url" \
-    --repo-ref v1.2.3 \
-    --claude-home "$tag_home" >/dev/null
+  REPO_URL="$repo_url" REPO_REF="v1.2.3" CLAUDE_HOME="$tag_home" \
+    bash "$script_copy" claude >/dev/null
 
   grep -F -q 'TAG_REF' "$tag_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref tag install to use tag content"
 
-  FAKE_E2ECTL_VERSION=0.3.0 FAKE_NPM_LATEST_VERSION=0.3.0 run_installer_with_stubs "$stub_dir" \
-    --target claude \
-    --scope global \
-    --repo-url "$repo_url" \
-    --repo-ref "$commit_sha" \
-    --claude-home "$commit_home" >/dev/null
+  REPO_URL="$repo_url" CLAUDE_HOME="$main_home" bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'COMMIT_REF' "$commit_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref commit install to use commit content"
+  grep -F -q 'MAIN_REF' "$main_home/skills/use-e2e/SKILL.md" || fail "expected default remote install to use main content"
 
   cleanup_dir "$tmp_dir"
 
-  pass "--repo-ref installs branch, tag, and commit sources"
+  pass "REPO_REF installs branch and tag sources, and defaults to main"
+}
+
+test_public_docs_remove_internal_and_prerelease_language() {
+  local readme_file="$repo_root/README.md"
+
+  assert_not_contains "$readme_file" "hitesh-test"
+  assert_not_contains "$readme_file" 'branch `develop`'
+  assert_not_contains "$readme_file" "@next"
+  assert_not_contains "$readme_file" "pre-release"
+
+  pass "README stays public-facing and avoids internal or pre-release drift"
 }
 
 test_claude_skill_allowed_tools() {
@@ -455,12 +395,14 @@ test_claude_skill_allowed_tools() {
 test_internal_docs_capture_hidden_mode_without_prerelease_language() {
   local agents_file="$repo_root/AGENTS.md"
 
-  grep -F -q 'E2E_SKILLS_MODE=internal' "$agents_file" || \
-    fail "expected AGENTS.md to keep the hidden internal mode for maintainers"
+  grep -F -q 'npm install -g @e2enetworks-oss/e2ectl' "$agents_file" || \
+    fail "expected AGENTS.md to keep the official global install command"
+  grep -F -q '## Install Paths' "$agents_file" || \
+    fail "expected AGENTS.md to document the supported install paths"
   assert_not_contains "$agents_file" "hitesh-test"
   assert_not_contains "$agents_file" 'branch `develop`'
 
-  pass "AGENTS.md keeps the hidden internal mode without pre-release package drift"
+  pass "AGENTS.md stays aligned with the public install contract"
 }
 
 test_skill_docs_match_installed_cli_contract() {
@@ -540,10 +482,10 @@ test_public_mode_missing_e2ectl_shows_guidance() {
   set -e
 
   [[ "$rc" != "0" ]] || fail "expected missing e2ectl to fail in public mode"
-  [[ "$output" == *"Rerun the installer to install or update it"* ]] || \
-    fail "expected rerun-installer guidance for missing public e2ectl, got: $output"
+  [[ "$output" == *"Error: binary not found in PATH: checked e2ectl"* ]] || \
+    fail "expected missing-binary guidance for public e2ectl lookup, got: $output"
 
-  pass "public mode points users back to the installer when e2ectl is missing"
+  pass "public mode fails clearly when e2ectl is missing from PATH"
 }
 
 test_internal_mode_prefers_repo_checkout() {
@@ -664,28 +606,12 @@ test_bad_env_file_fails_fast() {
 main() {
   test_install_urls
   test_install_script_supported_targets
-  test_missing_scope_defaults_to_global_without_tty
-  test_rerun_updates_existing_install_without_force
-  test_claude_install_path
-  test_project_scope_install_path
-  test_repo_ref_installs_branch_tag_and_commit
-  test_remote_default_branch_missing_skill_explains_repo_ref
-  test_stdin_installer_works_with_remote_source
-  test_cli_missing_installs_globally
-  test_interactive_cli_upgrade_accepts
-  test_interactive_cli_upgrade_declines
-  test_interactive_engine_failure_can_continue_with_current_cli
-  test_interactive_engine_failure_can_stop_for_node_upgrade
-  test_noninteractive_cli_does_not_upgrade_without_flag
-  test_failed_upgrade_keeps_existing_cli_and_installs_skill
-  test_failed_cli_install_continues_without_cli
-  test_noninteractive_upgrade_cli_flag_upgrades
-  test_failed_upgrade_verification_keeps_existing_cli_and_installs_skill
-  test_failed_upgrade_verification_with_lookup_failure_keeps_existing_cli_and_installs_skill
-  test_npm_lookup_failure_with_existing_cli_warns_and_continues
-  test_required_cli_install_failure_continues_without_cli
-  test_skip_cli_allows_skill_install_without_cli
+  test_all_targets_install_to_expected_paths
+  test_target_aliases_install_expected_paths
+  test_bad_target_fails_fast
+  test_repo_ref_installs_branch_tag_and_main
   test_public_docs_remove_internal_and_prerelease_language
+  test_claude_skill_allowed_tools
   test_internal_docs_capture_hidden_mode_without_prerelease_language
   test_skill_docs_match_installed_cli_contract
   test_relative_bin_with_cwd

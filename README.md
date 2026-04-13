@@ -16,7 +16,6 @@ npx skills add e2enetworks-oss/e2enetworks-skills
 
 Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run the installer again to update.
 
-
 ## Quickstart
 
 1. Create an API token in [E2E MyAccount > API & IAM](https://myaccount.e2enetworks.com/services/apiiam) and download the config JSON.
@@ -29,7 +28,8 @@ Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run th
    Or just ask in natural language: *"Set up my E2E config."*
 
 3. The skill will:
-   - install `e2ectl` if it's missing
+   - check whether `e2ectl` is already installed
+   - if `e2ectl` is missing, ask whether to install it globally or in this project
    - import your config JSON (point it at `~/Downloads/config.json` when asked)
    - prompt for a default project id and location if they aren't already saved
    - confirm the saved profile is ready
