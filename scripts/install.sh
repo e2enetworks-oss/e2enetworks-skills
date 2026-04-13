@@ -620,8 +620,12 @@ install_amp() {
   printf 'Installed: amp skill use-e2e\n'
 }
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-candidate_repo="$(cd -- "$script_dir/.." && pwd)"
+script_dir="$(resolve_script_dir 2>/dev/null || true)"
+if [[ -n "$script_dir" ]]; then
+  candidate_repo="$(cd -- "$script_dir/.." 2>/dev/null && pwd || true)"
+else
+  candidate_repo=""
+fi
 source_repo=""
 source_label=""
 tmp_dir=""
