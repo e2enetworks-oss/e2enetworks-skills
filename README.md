@@ -1,65 +1,78 @@
 # E2E Networks Skills
 
-`use-e2e` gives your coding agent a clean way to manage E2E Networks resources with the official E2E CLI.
+Agent skill for [E2E Networks](https://www.e2enetworks.com), following the [Agent Skills](https://agentskills.io) format.
 
-Use it to create and manage nodes, volumes, VPCs, and SSH keys from natural language requests.
-
-## Install
+## Installation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | bash
 ```
 
-This installs the skill and sets up `@e2enetworks-oss/e2ectl` if needed.
+Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run the installer again to update.
 
-## First Run
+### Claude Code plugin marketplace
 
-1. Create an API token in [E2E MyAccount > API & IAM](https://myaccount.e2enetworks.com/services/apiiam) and download the config JSON.
-2. Import it:
-
-```bash
-e2ectl config import --file ~/Downloads/config.json
+```
+/plugin marketplace add e2enetworks-oss/e2enetworks-skills
+/plugin install e2e@e2enetworks-skills
 ```
 
-3. Verify your setup:
+## Skill surface
 
-```bash
-e2ectl --version
-e2ectl config list
+This repo ships one installable skill:
+
+- [`use-e2e`](plugins/e2e/skills/use-e2e/SKILL.md)
+
+`use-e2e` is node-first. Intent routing is defined in `SKILL.md`, and execution details are split into action-oriented references.
+
+## Workflow coverage
+
+`use-e2e` covers:
+
+- Profile and config setup
+- Node provisioning and lifecycle
+- Node actions (power, save-image, attach)
+- SSH key upload and attach
+- VPC create and attach
+- Volume create, attach, and mount
+- Frontend and backend deployment on a node
+- DNS and HTTPS (Certbot)
+- Fleet inventory and status checks
+
+## Repository structure
+
+```text
+e2enetworks-skills/
+├── plugins/e2e/
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   ├── hooks/
+│   └── skills/
+│       └── use-e2e/
+│           ├── SKILL.md
+│           ├── scripts/
+│           │   └── e2ectl-run.sh
+│           └── references/
+│               ├── access.md
+│               ├── nodes.md
+│               └── maintenance.md
+├── scripts/
+│   └── install.sh
+├── AGENTS.md
+├── CLAUDE.md
+└── rfc.md
 ```
 
-Once a default alias, project id, and location are saved, the skill can use them in future requests.
+## Development notes
 
-## What You Can Ask
-
-- "Show me my saved E2E profiles."
-- "List my nodes and call out anything stopped."
-- "Create a new Ubuntu node and attach my SSH key."
-- "Create a volume, attach it to this node, and mount it at `/data`."
-- "Attach this node to my VPC."
-- "Power-cycle this node and confirm it comes back healthy."
-- "Deploy my backend repo on this node."
-
-In Claude Code, you can also run `/use-e2e`.
-
-## Update
-
-Run the installer again to update the skill.
-
-Use `--upgrade-cli` for non-interactive CLI upgrades, or `--skip-cli` if you manage `e2ectl` yourself.
-
-## Optional Flags
-
-- `--target claude` installs for one agent target
-- `--scope project --project-dir "$PWD"` installs into the current project
-- `--upgrade-cli` upgrades `e2ectl` in non-interactive environments
-
-## Troubleshooting
-
-If `e2ectl` is still missing after install, rerun the installer and follow the guidance it prints.
+- Keep `SKILL.md` concise and routing-focused.
+- Keep workflow behavior in action-oriented references.
+- Keep deep schema and reference material separate from runbooks.
+- Prefer canonical CLI syntax in examples.
 
 ## References
 
+- [Agent Skills Specification](https://agentskills.io/specification)
 - [E2E Networks Docs](https://docs.e2enetworks.com)
 
 ## License
