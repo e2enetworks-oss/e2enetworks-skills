@@ -93,6 +93,15 @@ resolve_default_bin() {
   return 1
 }
 
+mode="${E2E_SKILLS_MODE:-public}"
+bin_path=""
+bin_explicit="false"
+cwd=""
+env_file=""
+output_file=""
+print_command="false"
+command_args=()
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bin)
