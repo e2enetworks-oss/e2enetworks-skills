@@ -7,8 +7,6 @@ description: Manage E2E Networks resources with the official e2ectl CLI.
 
 ## Allowed Tools
 
-Only use these tools:
-
 - `Bash(e2ectl *)` — run e2ectl CLI (`npm install -g @e2enetworks-oss/e2ectl`)
 - `Bash(npm *)` — install e2ectl or app dependencies
 - `Bash(ssh *)` — SSH into nodes and run remote commands (apt-get, certbot, nginx, systemctl, etc. all run via ssh)
