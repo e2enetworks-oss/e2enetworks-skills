@@ -1,0 +1,9 @@
+{
+  "name": "e2e",
+  "version": "0.1.0",
+  "description": "e2ectl skill pack for CLI readiness, configuration, node lifecycle, and publishing workflows.",
+  "repository": "https://github.com/e2enetworks-oss/e2enetworks-skills",
+  "author": {
+    "name": "E2E Networks"
+  }
+}
