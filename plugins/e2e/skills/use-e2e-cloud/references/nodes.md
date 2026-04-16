@@ -4,6 +4,36 @@ In this file, `CLI` means the resolved command from `SKILL.md`.
 
 Do not use repeated `--help` calls for these workflows. Use these commands directly.
 
+## Catalog Discovery (required before create)
+
+**Always run these two commands before `node create`. Never skip them.**
+
+`node catalog plans` requires all four flags: `--display-category`, `--category`, `--os`, `--os-version`. The correct values come from `catalog os` output — do not guess them.
+
+Step 1 — discover valid OS rows:
+
+```bash
+CLI node catalog os --alias <alias>
+```
+
+The output table gives the exact values to use for all four flags. Pick the row that matches the OS the user wants.
+
+Step 2 — discover plans for that OS row:
+
+```bash
+CLI node catalog plans \
+  --alias <alias> \
+  --display-category "<display-category from catalog os>" \
+  --category "<category from catalog os>" \
+  --os "<os from catalog os>" \
+  --os-version "<os-version from catalog os>" \
+  --billing-type all
+```
+
+Only after running both commands do you have the exact `--plan` string and `--image` value needed for `node create`.
+
+**If you get an error about a missing required flag on `catalog plans`, stop. Run `catalog os` first — do not call `--help`.**
+
 ## Core Node Commands
 
 List:
@@ -341,4 +371,4 @@ Suggest `/data` if no mount path is provided.
 
 ## Docs
 
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/nodes
+- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index

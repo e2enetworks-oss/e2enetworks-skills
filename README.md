@@ -77,7 +77,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for repository structure and development 
 
 ## Questions & Support
 
-Stuck? Found a bug? Want to request a workflow? [Open a GitHub Discussion](https://github.com/e2enetworks-oss/e2enetworks-skills/discussions).
+Stuck? Found a bug? Want to request a workflow? [Open a GitHub Issue](https://github.com/e2enetworks-oss/e2enetworks-skills/issues).
 
 ## License
 

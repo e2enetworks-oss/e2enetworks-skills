@@ -17,7 +17,7 @@ by the reference files — configuration details, pricing, limits, release notes
 | MyAccount overview | `https://docs.e2enetworks.com/docs/myaccount` |
 | Getting started / signup | `https://docs.e2enetworks.com/docs/myaccount/GettingStarted/index` |
 | IAM / API tokens | `https://docs.e2enetworks.com/docs/myaccount/GettingStarted/iam` |
-| Nodes (compute) | `https://docs.e2enetworks.com/docs/myaccount/node/nodes` |
+| Nodes (compute) | `https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index` |
 | E1 series nodes | `https://docs.e2enetworks.com/docs/myaccount/node/e1-series/` |
 | Node management & operations | `https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index` |
 | GPU nodes | `https://docs.e2enetworks.com/docs/myaccount/gpu/get_started` |

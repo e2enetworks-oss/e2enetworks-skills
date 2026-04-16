@@ -8,6 +8,12 @@ The full behavior, rules, and workflows are defined in the skill file. Read it b
 
 `plugins/e2e/skills/use-e2e-cloud/SKILL.md`
 
+## CLI Install
+
+```bash
+npm install -g @e2enetworks-oss/e2ectl
+```
+
 ## Install Paths
 
 - Global Codex: `~/.codex/skills/use-e2e-cloud`
