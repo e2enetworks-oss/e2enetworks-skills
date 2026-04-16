@@ -132,67 +132,78 @@ CLI security-group delete <sg-id> --force --alias <alias>
 
 ## Rules File Format
 
-The `--rules-file` expects a backend-compatible JSON file. Ask the user to provide
-the file path. If they want to pipe rules from stdin, use `--rules-file -`.
+The `--rules-file` expects a flat JSON array of rule objects. Each rule has these fields:
+
+| Field | Values |
+|---|---|
+| `rule_type` | `"Inbound"` or `"Outbound"` |
+| `protocol_name` | `"Custom_TCP"`, `"Custom_UDP"`, `"All"`, `"ICMP"` |
+| `port_range` | port number as string (e.g. `"22"`), range (e.g. `"8000-9000"`), or `"All"` |
+| `network` | CIDR string (e.g. `"0.0.0.0/0"`, `"10.0.0.0/8"`) or `"any"` |
+| `description` | human-readable label (optional but recommended) |
 
 When the user asks to create or update a security group but has no file ready,
 ask them:
 - what inbound ports or protocols to allow (e.g. 22/SSH, 80/HTTP, 443/HTTPS)
-- what source CIDRs to allow (e.g. `0.0.0.0/0` for public, specific IP for restricted)
-- whether any outbound rules are needed
+- whether to restrict source to a specific IP or allow `"any"`
+- whether any outbound rules are needed (default: allow all outbound)
 
-Then help them construct the JSON before running the command.
+Then construct the JSON and write it to a temp file before running the command.
 
-### Example rules.json (web server — SSH + HTTP + HTTPS)
+### Example rules.json (web server — SSH + HTTP + all outbound)
 
 ```json
-{
-  "inbound_rules": [
-    {
-      "protocol": "tcp",
-      "port_range": "22",
-      "sources": { "addresses": ["0.0.0.0/0"] }
-    },
-    {
-      "protocol": "tcp",
-      "port_range": "80",
-      "sources": { "addresses": ["0.0.0.0/0"] }
-    },
-    {
-      "protocol": "tcp",
-      "port_range": "443",
-      "sources": { "addresses": ["0.0.0.0/0"] }
-    }
-  ],
-  "outbound_rules": [
-    {
-      "protocol": "tcp",
-      "port_range": "all",
-      "destinations": { "addresses": ["0.0.0.0/0"] }
-    }
-  ]
-}
+[
+  {
+    "rule_type": "Inbound",
+    "protocol_name": "Custom_TCP",
+    "port_range": "22",
+    "network": "any",
+    "description": "SSH access"
+  },
+  {
+    "rule_type": "Inbound",
+    "protocol_name": "Custom_TCP",
+    "port_range": "80",
+    "network": "any",
+    "description": "HTTP"
+  },
+  {
+    "rule_type": "Inbound",
+    "protocol_name": "Custom_TCP",
+    "port_range": "443",
+    "network": "any",
+    "description": "HTTPS"
+  },
+  {
+    "rule_type": "Outbound",
+    "protocol_name": "All",
+    "port_range": "All",
+    "network": "any",
+    "description": "All outbound"
+  }
+]
 ```
 
-If the user only wants SSH access (locked to their IP):
+SSH only, locked to a specific IP:
 
 ```json
-{
-  "inbound_rules": [
-    {
-      "protocol": "tcp",
-      "port_range": "22",
-      "sources": { "addresses": ["<your-ip>/32"] }
-    }
-  ],
-  "outbound_rules": [
-    {
-      "protocol": "tcp",
-      "port_range": "all",
-      "destinations": { "addresses": ["0.0.0.0/0"] }
-    }
-  ]
-}
+[
+  {
+    "rule_type": "Inbound",
+    "protocol_name": "Custom_TCP",
+    "port_range": "22",
+    "network": "<your-ip>/32",
+    "description": "SSH from my IP"
+  },
+  {
+    "rule_type": "Outbound",
+    "protocol_name": "All",
+    "port_range": "All",
+    "network": "any",
+    "description": "All outbound"
+  }
+]
 ```
 
 Write the JSON to a temp file, then pass it to the command:

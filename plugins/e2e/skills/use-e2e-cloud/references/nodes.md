@@ -232,7 +232,7 @@ Do not treat action `Status: done` as the final power state by itself.
 - run `catalog os` then `catalog plans` — never skip catalog discovery before create
 - use the exact `plan` string and `image` value from catalog output
 - if committed billing is requested, use the exact committed plan id from catalog
-- for E1/E1WC plans, ask for root disk size and pass `--disk`
+- for E1/E1WC plans, ask for root disk size and pass `--disk`; valid range is 75–2400 GB, default is 150 GB, increments are 25 GB up to 150 GB then 50 GB above 150 GB
 - reserved IP is **bundled** with all node plans except E1 — the node's public IP is already a reserved IP; no extra `reserved-ip create` needed for non-E1 nodes
 - E1 nodes do **not** include a bundled reserved IP; allocate one separately if a stable public IP is needed
 - if alias lookup fails, stop and resolve config before retrying
