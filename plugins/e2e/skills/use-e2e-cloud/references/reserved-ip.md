@@ -4,6 +4,11 @@ In this file, `CLI` means the resolved command from `SKILL.md`.
 
 Do not use repeated `--help` calls for these workflows. Use these commands directly.
 
+## Pricing
+
+- **INR:** ₹199/month
+- **USD:** $3/month
+
 ## Overview
 
 Reserved IPs are static public IPv4 addresses that can be attached to and detached
