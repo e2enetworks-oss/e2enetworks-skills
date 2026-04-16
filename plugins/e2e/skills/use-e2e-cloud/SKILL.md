@@ -22,6 +22,7 @@ description: Manage E2E Networks cloud platform resources — nodes, networking,
 - `Bash(ls *)` — inspect local paths
 - `Bash(which *)` — detect installed CLI
 - `Bash(go *)` — build Go binaries locally before upload
+- `WebFetch(https://docs.e2enetworks.com/*)` — fetch E2E docs when reference files don't cover a specific question
 
 Use this skill when the user wants E2E Networks infrastructure work.
 
@@ -66,6 +67,7 @@ If any command returns `Profile "<alias>" was not found`: tell the user in plain
 | Create or attach security groups | `references/security-group.md` |
 | Deploy a frontend or backend app | `references/deploy.md` |
 | SSH into a node, DNS, HTTPS | `references/deploy.md` |
+| Docs for any resource / pricing / limits | `references/docs-index.md` |
 
 ## 4. Critical Rules
 
@@ -123,3 +125,4 @@ Always apply these unless the user says otherwise:
 - VPC networks: `references/vpc.md`
 - security groups: `references/security-group.md`
 - app deployment, DNS, HTTPS, services: `references/deploy.md`
+- E2E docs index (all resource URLs): `references/docs-index.md`

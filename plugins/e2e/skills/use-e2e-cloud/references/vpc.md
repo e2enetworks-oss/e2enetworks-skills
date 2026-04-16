@@ -126,3 +126,7 @@ CLI node get <node-id> --alias <alias>
 - after create, remind the user to wait for `Active` state before attaching
 - after attach, confirm the node now has a private IP
 - do not show raw JSON unless asked
+
+## Docs
+
+- Official documentation: https://docs.e2enetworks.com/docs/myaccount/network/vpc

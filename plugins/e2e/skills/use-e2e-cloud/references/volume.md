@@ -120,3 +120,7 @@ If status is `Attached` (or delete returns a 412 "detach first" error):
 - after create, show volume id, name, size, and next step (attach to a node)
 - after attach, say which node and volume are now connected and suggest mount steps
 - do not show raw JSON unless asked
+
+## Docs
+
+- Official documentation: https://docs.e2enetworks.com/docs/myaccount/storage/block_storage

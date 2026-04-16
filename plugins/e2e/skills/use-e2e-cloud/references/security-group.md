@@ -209,3 +209,7 @@ CLI security-group create --name <sg-name> --rules-file /tmp/rules.json --alias 
 - after update, confirm which security group was updated and that the rule set was replaced
 - after attach/detach, confirm the node and security group involved
 - do not show raw JSON unless asked
+
+## Docs
+
+- Official documentation: https://docs.e2enetworks.com/docs/myaccount/network/security_grp

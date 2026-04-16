@@ -97,3 +97,7 @@ CLI reserved-ip attach node <ip-address> --node-id <new-node-id> --alias <alias>
 - after attach, confirm the node now uses the reserved IP
 - after detach, confirm the IP is now free and can be reused
 - do not show raw JSON unless asked
+
+## Docs
+
+- Official documentation: https://docs.e2enetworks.com/docs/myaccount/network/reserve_ip

@@ -335,3 +335,7 @@ Suggest `/data` if no mount path is provided.
 - after actions, include the confirmed node status from the follow-up `node get`
 - after create, attach, or delete, say the next useful step
 - do not show raw JSON unless asked
+
+## Docs
+
+- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/nodes
