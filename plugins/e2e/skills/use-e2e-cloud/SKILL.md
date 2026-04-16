@@ -1,6 +1,7 @@
 ---
 name: use-e2e-cloud
-description: Manage E2E Networks cloud platform resources — nodes, load balancers, Kubernetes, databases, networking, and storage — using the official e2ectl CLI.
+description: Manage E2E Networks cloud platform resources — nodes, 
+networking, and storage — using the official e2ectl CLI.
 ---
 
 # use-e2e-cloud
