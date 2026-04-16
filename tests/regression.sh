@@ -608,6 +608,30 @@ test_bad_env_file_fails_fast() {
   pass "bad --env-file aborts before running the wrapped command"
 }
 
+test_ci_workflows_valid_yaml() {
+  local workflow_dir="$repo_root/.github/workflows"
+
+  if [[ ! -d "$workflow_dir" ]]; then
+    pass "no .github/workflows directory — skipping CI YAML check"
+    return
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    pass "python3 not available — skipping CI YAML syntax check"
+    return
+  fi
+
+  local failed=0
+  while IFS= read -r -d '' yaml_file; do
+    if ! python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$yaml_file" 2>/dev/null; then
+      fail "invalid YAML syntax: $yaml_file"
+      failed=1
+    fi
+  done < <(find "$workflow_dir" -name "*.yml" -o -name "*.yaml" -print0 2>/dev/null)
+
+  [[ "$failed" == "0" ]] && pass "all CI workflow files are valid YAML"
+}
+
 main() {
   test_install_urls
   test_install_script_supported_targets
@@ -626,6 +650,7 @@ main() {
   test_internal_mode_falls_back_to_installed_e2ectl
   test_relative_env_file_with_cwd
   test_bad_env_file_fails_fast
+  test_ci_workflows_valid_yaml
 }
 
 main "$@"

@@ -18,5 +18,7 @@ npm install -g @e2enetworks-oss/e2ectl
 
 - Global Codex: `~/.codex/skills/use-e2e-cloud`
 - Global Claude: `~/.claude/skills/use-e2e-cloud`
+- Global Cursor: `~/.cursor/skills/use-e2e-cloud`
+- Global OpenCode: `~/.config/opencode/skills/use-e2e-cloud`
 - Project Codex: `.codex/skills/use-e2e-cloud`
 - Project Claude: `.claude/skills/use-e2e-cloud`

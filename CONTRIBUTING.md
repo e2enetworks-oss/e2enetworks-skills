@@ -7,9 +7,6 @@ Thanks for your interest in contributing to `e2enetworks-skills`.
 ```text
 e2enetworks-skills/
 ├── plugins/e2e/
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   ├── hooks/
 │   └── skills/
 │       └── use-e2e-cloud/
 │           ├── SKILL.md

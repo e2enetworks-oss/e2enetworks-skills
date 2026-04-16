@@ -23,8 +23,12 @@ jobs:
           docs_file="plugins/e2e/skills/use-e2e-cloud/references/docs-index.md"
           fail=0
           while IFS= read -r url; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" || true)
-            if [[ "$status" == "404" ]]; then
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null)
+            curl_rc=$?
+            if [[ $curl_rc -ne 0 ]]; then
+              printf 'FAIL curl-error(%d): %s\n' "$curl_rc" "$url" >&2
+              fail=1
+            elif [[ "$status" == "404" ]]; then
               printf 'FAIL 404: %s\n' "$url" >&2
               fail=1
             else
