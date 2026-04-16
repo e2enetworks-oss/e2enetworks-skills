@@ -202,6 +202,8 @@ Do not treat action `Status: done` as the final power state by itself.
 - use the exact `plan` string and `image` value from catalog output
 - if committed billing is requested, use the exact committed plan id from catalog
 - for E1/E1WC plans, ask for root disk size and pass `--disk`
+- reserved IP is **bundled** with all node plans except E1 — the node's public IP is already a reserved IP; no extra `reserved-ip create` needed for non-E1 nodes
+- E1 nodes do **not** include a bundled reserved IP; allocate one separately if a stable public IP is needed
 - if alias lookup fails, stop and resolve config before retrying
 - SSH keys can be attached at create time with `--ssh-key-id` — no need for a separate attach step if the key already exists
 
