@@ -1,7 +1,6 @@
 ---
 name: use-e2e-cloud
-description: Manage E2E Networks cloud platform resources — nodes, 
-networking, and storage — using the official e2ectl CLI.
+description: Manage E2E Networks cloud platform resources — nodes, networking, and storage — using the official e2ectl CLI.
 ---
 
 # use-e2e-cloud
@@ -26,26 +25,7 @@ networking, and storage — using the official e2ectl CLI.
 
 Use this skill when the user wants E2E Networks infrastructure work.
 
-## 0. First-Run Detection
-
-Before anything else, run `config list` silently.
-
-**If no saved profiles exist — Welcome Wizard:**
-
-Ask via `AskUserQuestion` (button-style):
-
-- question: `Welcome to use-e2e! What do you want to do?`
-- options:
-  - `Deploy an app on a server`
-  - `Provision a node`
-  - `Manage existing infra`
-  - `Set up networking or storage`
-
-Frame every subsequent step as serving this goal — not as setup for its own sake.
-
-Skip the wizard if the user already has profiles or their message has a specific intent.
-
-**Session Resume Detection:**
+## 0. Session Resume Detection
 
 After config resolves, check `~/.e2e/use-e2e-state.json`. If it exists and is under 24h old, offer to resume:
 
