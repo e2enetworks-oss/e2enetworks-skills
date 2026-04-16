@@ -10,6 +10,12 @@ Reserved IPs are static public IPv4 addresses that can be attached to and detach
 from nodes independently of the node lifecycle. Use them to keep a stable IP across
 node replacements or to preserve an IP before deleting a node.
 
+**Bundled vs. unbundled:**
+- All node plans **except E1** include a reserved IP bundled at no extra cost. The node's
+  public IP is already a reserved IP and does not require a separate `reserved-ip create`.
+- **E1 nodes do not include a bundled reserved IP.** If an E1 node needs a stable public IP,
+  allocate one explicitly with `reserved-ip create` and attach it.
+
 All commands use `<ipAddress>` (the dotted-decimal IP string) as the resource identifier,
 not a numeric ID.
 
