@@ -5,6 +5,11 @@ Base URL: `https://docs.e2enetworks.com`
 Use `WebFetch` to retrieve any page below when the user asks something not covered
 by the reference files — configuration details, pricing, limits, release notes.
 
+> **Note:** These URLs are derived from the Docusaurus source file paths. If a page
+> has a custom `slug:` in its frontmatter, the live URL may differ. If WebFetch
+> returns a 404, try `https://docs.e2enetworks.com` and navigate from there, or
+> tell the user the doc page may have moved.
+
 ## Resource → Doc URL
 
 | Resource | Doc URL |
@@ -13,6 +18,7 @@ by the reference files — configuration details, pricing, limits, release notes
 | Getting started / signup | `https://docs.e2enetworks.com/docs/myaccount/GettingStarted/index` |
 | IAM / API tokens | `https://docs.e2enetworks.com/docs/myaccount/GettingStarted/iam` |
 | Nodes (compute) | `https://docs.e2enetworks.com/docs/myaccount/node/nodes` |
+| E1 series nodes | `https://docs.e2enetworks.com/docs/myaccount/node/e1-series/` |
 | Node management & operations | `https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index` |
 | GPU nodes | `https://docs.e2enetworks.com/docs/myaccount/gpu/get_started` |
 | GPU cloud overview | `https://docs.e2enetworks.com/docs/myaccount/gpu/gpu_cloud` |

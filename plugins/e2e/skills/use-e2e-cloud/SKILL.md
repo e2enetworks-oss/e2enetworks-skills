@@ -33,7 +33,7 @@ After config resolves, check `~/.e2e/use-e2e-state.json`. If it exists and is un
 - question: `You have an unfinished flow. Resume it?`
 - options: `Resume — [next pending step]` / `Start fresh`
 
-If no state file, and user intent is provision/deploy: run `node list`, find any recently-created `Running` node with no SSH key attached, and ask if they want to continue its setup.
+If no state file, AND this is the first message of the session, AND the user's message explicitly contains "create", "provision", or "deploy": run `node list`, find any recently-created `Running` node with no SSH key attached, and ask if they want to continue its setup. Do not run this check for any other intent.
 
 **Write state at each major step** (node_created → ssh_key_attached → vpc_attached → volume_attached → app_deployed). Delete on completion, cancellation, or after 24h. State file: `~/.e2e/use-e2e-state.json`.
 

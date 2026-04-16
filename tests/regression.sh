@@ -294,6 +294,11 @@ test_all_targets_install_to_expected_paths() {
   [[ -f "$cursor_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Cursor install path"
   [[ -f "$opencode_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected OpenCode install path"
 
+  # Verify all reference files are installed
+  for ref in access nodes vpc volume security-group reserved-ip project deploy docs-index; do
+    [[ -f "$claude_home/skills/use-e2e-cloud/references/${ref}.md" ]] || fail "expected reference file ${ref}.md to be installed"
+  done
+
   cleanup_dir "$tmp_dir"
 
   pass "installer copies the skill into every supported agent path"

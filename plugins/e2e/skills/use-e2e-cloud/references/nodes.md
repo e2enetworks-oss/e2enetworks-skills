@@ -59,6 +59,7 @@ CLI node create \
 ```
 
 Create (E1 / E1WC plans — `--disk` required, rejected for all other plans):
+See E1 series docs: https://docs.e2enetworks.com/docs/myaccount/node/e1-series/
 
 ```bash
 CLI node create \
