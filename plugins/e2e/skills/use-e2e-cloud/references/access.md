@@ -63,15 +63,24 @@ If no usable config exists, ask via `AskUserQuestion` (button-style):
   - `Use a config file on this machine` — ask for the file path, then import
   - `Upload a config file` — ask the user to provide the file, then import
 
-Import command:
+Import command — always use `--file`, never pass the path as a bare argument:
 
 ```bash
 CLI config import \
-  --file <path> \
+  --file "<path>" \
   --default <alias> \
   --default-project-id <project-id> \
   --default-location <location>
 ```
+
+**Overwrite error:** If the command returns `Import would overwrite existing aliases: <alias>`, ask the user via `AskUserQuestion`:
+
+- question: `A saved profile named "<alias>" already exists. Overwrite it with the new config?`
+- options:
+  - `Yes, overwrite` — re-run with `--force`
+  - `No, keep the existing profile` — skip import and use the existing alias
+
+If the user chooses overwrite, add `--force` to the same command and re-run. Do not use `--help` on import failures — the flag syntax above is correct.
 
 ## Step 4 — Select Default Profile (multiple aliases)
 
@@ -100,22 +109,35 @@ to treat as active for this session:
 
 ## Step 5 — Select Default Project
 
-After the profile is resolved, list projects for the account:
+After the profile is resolved, list all projects for the account:
 
 ```bash
 CLI project list --alias <alias>
 ```
 
-Present the returned projects as a button-style `AskUserQuestion`:
+Print every project as a plain text summary so the user can see all of them:
 
-- question: `Which project should be used as the default?`
-- options: one button per project showing `<project-name> (id: <project-id>)`
-- include one extra option: `Enter project ID manually`
+```
+Your projects:
+  48660  normaDbaaS            ← previously used CLI default
+  48103  default-project-42526
+  51234  my-other-project
+  ...
+```
 
-If the user selects `Enter project ID manually`, ask:
+Mark the previously-used CLI default with `← previously used CLI default` if one exists.
 
-- question: `Please enter your project ID:`
-- accept free-text input
+Do NOT use one button per project — `AskUserQuestion` supports a maximum of 4 options and most accounts have more projects than that. Use this fixed layout instead:
+
+- question: `Which project ID should be the default? (see the list above)`
+- options:
+  - `<id> — <name> (Recommended)` — the previously-used CLI default, if one exists
+  - `<id> — <name>` — the account default project, if different from the above
+  - `Enter a different ID` — for any other project shown in the list above
+
+If the user selects `Enter a different ID`, ask as a follow-up free-text prompt:
+
+- question: `Enter the project ID from the list above:`
 
 ## Step 6 — Select Location
 
