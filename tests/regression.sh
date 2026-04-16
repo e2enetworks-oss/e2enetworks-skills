@@ -43,8 +43,8 @@ write_minimal_skill_repo() {
   local repo_dir="$1"
   local marker="$2"
 
-  mkdir -p "$repo_dir/plugins/e2e/skills/use-e2e"
-  cat > "$repo_dir/plugins/e2e/skills/use-e2e/SKILL.md" <<EOF
+  mkdir -p "$repo_dir/plugins/e2e/skills/use-e2e-cloud"
+  cat > "$repo_dir/plugins/e2e/skills/use-e2e-cloud/SKILL.md" <<EOF
 # $marker
 EOF
 }
@@ -289,10 +289,15 @@ test_all_targets_install_to_expected_paths() {
   OPENCODE_HOME="$opencode_home" \
     bash "$repo_root/scripts/install.sh" all >/dev/null
 
-  [[ -f "$codex_home/skills/use-e2e/SKILL.md" ]] || fail "expected Codex install path"
-  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install path"
-  [[ -f "$cursor_home/skills/use-e2e/SKILL.md" ]] || fail "expected Cursor install path"
-  [[ -f "$opencode_home/skills/use-e2e/SKILL.md" ]] || fail "expected OpenCode install path"
+  [[ -f "$codex_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Codex install path"
+  [[ -f "$claude_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Claude install path"
+  [[ -f "$cursor_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Cursor install path"
+  [[ -f "$opencode_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected OpenCode install path"
+
+  # Verify all reference files are installed
+  for ref in access nodes vpc volume security-group reserved-ip project deploy docs-index; do
+    [[ -f "$claude_home/skills/use-e2e-cloud/references/${ref}.md" ]] || fail "expected reference file ${ref}.md to be installed"
+  done
 
   cleanup_dir "$tmp_dir"
 
@@ -311,8 +316,8 @@ test_target_aliases_install_expected_paths() {
   CLAUDE_HOME="$claude_home" bash "$repo_root/scripts/install.sh" claude-code >/dev/null
   OPENCODE_HOME="$opencode_home" bash "$repo_root/scripts/install.sh" open-code >/dev/null
 
-  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected claude-code alias to install into Claude home"
-  [[ -f "$opencode_home/skills/use-e2e/SKILL.md" ]] || fail "expected open-code alias to install into OpenCode home"
+  [[ -f "$claude_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected claude-code alias to install into Claude home"
+  [[ -f "$opencode_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected open-code alias to install into OpenCode home"
 
   cleanup_dir "$tmp_dir"
 
@@ -356,16 +361,16 @@ test_repo_ref_installs_branch_tag_and_main() {
   REPO_URL="$repo_url" REPO_REF="feature-branch" CLAUDE_HOME="$branch_home" \
     bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'BRANCH_REF' "$branch_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref branch install to use branch content"
+  grep -F -q 'BRANCH_REF' "$branch_home/skills/use-e2e-cloud/SKILL.md" || fail "expected --repo-ref branch install to use branch content"
 
   REPO_URL="$repo_url" REPO_REF="v1.2.3" CLAUDE_HOME="$tag_home" \
     bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'TAG_REF' "$tag_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref tag install to use tag content"
+  grep -F -q 'TAG_REF' "$tag_home/skills/use-e2e-cloud/SKILL.md" || fail "expected --repo-ref tag install to use tag content"
 
   REPO_URL="$repo_url" CLAUDE_HOME="$main_home" bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'MAIN_REF' "$main_home/skills/use-e2e/SKILL.md" || fail "expected default remote install to use main content"
+  grep -F -q 'MAIN_REF' "$main_home/skills/use-e2e-cloud/SKILL.md" || fail "expected default remote install to use main content"
 
   cleanup_dir "$tmp_dir"
 
@@ -384,7 +389,7 @@ test_public_docs_remove_internal_and_prerelease_language() {
 }
 
 test_claude_skill_allowed_tools() {
-  local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
+  local skill_file="$repo_root/plugins/e2e/skills/use-e2e-cloud/SKILL.md"
 
   grep -F -q 'Bash(e2ectl *)' "$skill_file" || fail "expected Claude skill to pre-allow e2ectl commands"
   grep -F -q 'Bash(npm *)' "$skill_file" || fail "expected Claude skill to pre-allow npm commands"
@@ -406,8 +411,8 @@ test_internal_docs_capture_hidden_mode_without_prerelease_language() {
 }
 
 test_skill_docs_match_installed_cli_contract() {
-  local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
-  local access_file="$repo_root/plugins/e2e/skills/use-e2e/references/access.md"
+  local skill_file="$repo_root/plugins/e2e/skills/use-e2e-cloud/SKILL.md"
+  local access_file="$repo_root/plugins/e2e/skills/use-e2e-cloud/references/access.md"
 
   grep -F -q '@e2enetworks-oss/e2ectl' "$skill_file" || fail "expected SKILL.md to document the official npm package"
   grep -F -q 'npm install -g @e2enetworks-oss/e2ectl' "$access_file" || \
@@ -417,7 +422,7 @@ test_skill_docs_match_installed_cli_contract() {
 }
 
 test_relative_bin_with_cwd() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local output=""
@@ -446,7 +451,7 @@ test_relative_bin_with_cwd() {
 }
 
 test_public_mode_prefers_installed_e2ectl() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local global_dir=""
@@ -468,11 +473,11 @@ test_public_mode_prefers_installed_e2ectl() {
 
   cleanup_dir "$tmp_dir"
 
-  pass "public mode prefers installed e2ectl over cwd-local bins"
+  pass "public mode prefers project-local e2ectl over global installed CLI"
 }
 
 test_public_mode_missing_e2ectl_shows_guidance() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local output=""
   local rc=0
 
@@ -489,7 +494,7 @@ test_public_mode_missing_e2ectl_shows_guidance() {
 }
 
 test_internal_mode_prefers_repo_checkout() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local global_dir=""
@@ -526,7 +531,7 @@ EOF
 }
 
 test_internal_mode_falls_back_to_installed_e2ectl() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local global_dir=""
@@ -550,7 +555,7 @@ test_internal_mode_falls_back_to_installed_e2ectl() {
 }
 
 test_relative_env_file_with_cwd() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local source_dir=""
@@ -574,7 +579,7 @@ test_relative_env_file_with_cwd() {
 }
 
 test_bad_env_file_fails_fast() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local source_dir=""
@@ -603,6 +608,39 @@ test_bad_env_file_fails_fast() {
   pass "bad --env-file aborts before running the wrapped command"
 }
 
+test_ci_workflows_valid_yaml() {
+  local workflow_dir="$repo_root/.github/workflows"
+
+  if [[ ! -d "$workflow_dir" ]]; then
+    pass "no .github/workflows directory — skipping CI YAML check"
+    return
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    pass "python3 not available — skipping CI YAML syntax check"
+    return
+  fi
+
+  if ! python3 -c "import yaml" 2>/dev/null; then
+    pass "python3 yaml module not installed — skipping CI YAML syntax check"
+    return
+  fi
+
+  local file_count=0
+  local failed=0
+  while IFS= read -r -d '' yaml_file; do
+    file_count=$((file_count + 1))
+    if ! python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$yaml_file" 2>/dev/null; then
+      printf 'FAIL: invalid YAML syntax: %s\n' "$yaml_file" >&2
+      failed=1
+    fi
+  done < <(find "$workflow_dir" \( -name "*.yml" -o -name "*.yaml" \) -print0 2>/dev/null)
+
+  [[ "$file_count" -gt 0 ]] || fail "no YAML files found in $workflow_dir"
+  [[ "$failed" == "0" ]] || fail "one or more CI workflow files have invalid YAML"
+  pass "all CI workflow files are valid YAML ($file_count files checked)"
+}
+
 main() {
   test_install_urls
   test_install_script_supported_targets
@@ -621,6 +659,7 @@ main() {
   test_internal_mode_falls_back_to_installed_e2ectl
   test_relative_env_file_with_cwd
   test_bad_env_file_fails_fast
+  test_ci_workflows_valid_yaml
 }
 
 main "$@"

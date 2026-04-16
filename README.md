@@ -1,6 +1,14 @@
 # E2E Networks Skills
 
-Agent skill for [E2E Networks](https://www.e2enetworks.com), following the [Agent Skills](https://agentskills.io) format.
+Manage E2E Networks cloud infrastructure in plain English from your coding agent — no dashboard, no CLI flags, no docs required.
+
+```
+"Create a Ubuntu node and deploy my Node.js backend"
+"List my nodes and show anything that's stopped"
+"Attach a volume to this node and mount it at /data"
+```
+
+Works with Claude Code, Codex, Cursor, and any agent that supports the [Agent Skills](https://agentskills.io) format.
 
 ## Installation
 
@@ -22,7 +30,7 @@ Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run th
 2. In your coding agent, invoke the skill — for example in Claude Code:
 
    ```
-   /use-e2e
+   /use-e2e-cloud
    ```
 
    Or just ask in natural language: *"Set up my E2E config."*
@@ -46,12 +54,12 @@ From that point on, the skill uses your saved alias, project id, and location fo
 - "Power-cycle this node and confirm it comes back healthy."
 - "Deploy my backend repo on this node."
 
-In Claude Code, you can also run `/use-e2e`.
+In Claude Code, you can also run `/use-e2e-cloud`.
 
 
 ## Workflow coverage
 
-`use-e2e` covers:
+`use-e2e-cloud` covers:
 
 - Profile and config setup
 - Node provisioning and lifecycle
@@ -66,6 +74,10 @@ In Claude Code, you can also run `/use-e2e`.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for repository structure and development notes.
+
+## Questions & Support
+
+Stuck? Found a bug? Want to request a workflow? [Open a GitHub Issue](https://github.com/e2enetworks-oss/e2enetworks-skills/issues).
 
 ## License
 

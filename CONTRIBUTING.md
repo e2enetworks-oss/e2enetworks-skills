@@ -7,21 +7,30 @@ Thanks for your interest in contributing to `e2enetworks-skills`.
 ```text
 e2enetworks-skills/
 ├── plugins/e2e/
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   ├── hooks/
 │   └── skills/
-│       └── use-e2e/
+│       └── use-e2e-cloud/
 │           ├── SKILL.md
 │           ├── scripts/
 │           │   └── e2ectl-run.sh
 │           └── references/
 │               ├── access.md
+│               ├── deploy.md
+│               ├── docs-index.md
 │               ├── nodes.md
-│               └── maintenance.md
+│               ├── project.md
+│               ├── reserved-ip.md
+│               ├── security-group.md
+│               ├── volume.md
+│               └── vpc.md
 ├── scripts/
 │   └── install.sh
+├── tests/
+│   └── regression.sh
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── AGENTS.md
+├── CHANGELOG.md
 ├── CLAUDE.md
 └── README.md
 ```
