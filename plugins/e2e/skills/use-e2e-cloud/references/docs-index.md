@@ -15,7 +15,7 @@ by the reference files — configuration details, pricing, limits, release notes
 | Resource | Doc URL |
 |---|---|
 | MyAccount overview | `https://docs.e2enetworks.com/docs/myaccount` |
-| Getting started / signup | `https://docs.e2enetworks.com/docs/myaccount/GettingStarted/index` |
+| Getting started / signup | `https://docs.e2enetworks.com/docs/myaccount` |
 | IAM / API tokens | `https://docs.e2enetworks.com/docs/myaccount/GettingStarted/iam` |
 | Nodes (compute) | `https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index` |
 | E1 series nodes | `https://docs.e2enetworks.com/docs/myaccount/node/e1-series/` |

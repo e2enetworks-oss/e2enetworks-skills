@@ -273,10 +273,10 @@ If no matching key exists, upload from file:
 CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <alias>
 ```
 
-Or from stdin:
+Or using `-` to read from stdin (use a temp file in the agent — pipes violate the no-chain rule):
 
 ```bash
-cat ~/.ssh/id_ed25519.pub | CLI ssh-key create --label <key-label> --public-key-file - --alias <alias>
+CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <alias>
 ```
 
 Attach:
@@ -359,6 +359,16 @@ Suggest `/data` if no mount path is provided.
 - always use `--force` — all delete commands require it in non-interactive terminals
 - if the user wants to keep the IP, use `--reserve-public-ip`
 - after delete, refresh with `node list` if the user wants the updated fleet
+
+## Error Recovery
+
+| Error | Cause | Fix |
+|---|---|---|
+| `412` on `node create` | `--plan` is a SKU shortname, not the full string | Re-run `catalog plans`, copy the exact full string including parenthetical spec |
+| `node action * attach` fails immediately | Node is still `Creating` | Poll `node get` until status is `Running`, then retry the attach |
+| `You cannot add the same key again` on `ssh-key create` | Key content already uploaded under a different label | Run `ssh-key list`, find the existing key, use its id with `node action ssh-key attach` |
+| `node upgrade` rejected | Plan string is a shortname or contains extra whitespace | Re-run `catalog plans` and copy the exact string from output |
+| `node action vpc attach` returns "VPC not found" | VPC is still `Creating` | Poll `vpc list` until state is `Active`, then retry attach |
 
 ## Output Rules
 

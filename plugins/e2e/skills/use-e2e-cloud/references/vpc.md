@@ -120,6 +120,14 @@ CLI node action vpc attach <node-id> --vpc-id <network-id> --alias <alias>
 CLI node get <node-id> --alias <alias>
 ```
 
+## Error Recovery
+
+| Error | Cause | Fix |
+|---|---|---|
+| `node action vpc attach` returns "VPC X not found" | VPC state is not yet `Active` | Poll `vpc list` until State column shows `Active`, then retry |
+| `vpc delete` rejected | Node is still attached to the VPC | Detach with `node action vpc detach`, verify with `node get`, then delete |
+| Attach succeeds but node has no private IP | Wrong ID passed (`vpc create` VPC ID vs Network ID) | Run `vpc list`, use the **Network ID** column value for `--vpc-id` |
+
 ## Output Rules
 
 - after `vpc list`, show id (Network ID), name, state, CIDR, and location

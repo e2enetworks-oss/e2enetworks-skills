@@ -47,19 +47,20 @@ CLI security-group create \
 `--default` marks this security group as the account default.
 `--rules-file -` reads rules from stdin.
 
-Update (full rule set replacement):
+Update (full rule set replacement — `--name` is required):
 
 ```bash
 CLI security-group update <security-group-id> \
+  --name <security-group-name> \
   --rules-file <path-to-rules.json> \
   --alias <alias>
 ```
 
-Update with name or description change:
+Update with description change:
 
 ```bash
 CLI security-group update <security-group-id> \
-  --name <new-name> \
+  --name <security-group-name> \
   --rules-file <path-to-rules.json> \
   --description "<new-description>" \
   --alias <alias>
@@ -117,6 +118,7 @@ Replace the rule set on an existing security group:
 ```bash
 # Provide the full desired rule set — this is a complete replacement, not a patch
 CLI security-group update <security-group-id> \
+  --name <security-group-name> \
   --rules-file updated-rules.json \
   --alias <alias>
 ```

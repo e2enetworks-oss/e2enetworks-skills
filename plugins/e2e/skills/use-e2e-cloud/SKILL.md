@@ -37,6 +37,17 @@ If no state file, AND this is the first message of the session, AND the user's m
 
 **Write state at each major step** (node_created → ssh_key_attached → vpc_attached → volume_attached → app_deployed). Delete on completion, cancellation, or after 24h. State file: `~/.e2e/use-e2e-state.json`.
 
+State file schema (always include `schema_version`):
+```json
+{
+  "schema_version": 1,
+  "step": "<current-step>",
+  "node_id": "<node-id>",
+  "alias": "<profile-alias>",
+  "updated_at": "<iso8601-timestamp>"
+}
+```
+
 ## 1. Resolve CLI
 
 See `references/access.md` for the full flow (Node.js check → CLI install → Global vs Project).
@@ -44,7 +55,7 @@ See `references/access.md` for the full flow (Node.js check → CLI install → 
 **Permission rules — strictly required:**
 - Each Bash call must start with a single command token — no `&&` or `;` chains
 - Poll node status by running `sleep` and `node get` as separate Bash calls, never chained
-- Never chain commands with `&&` inside `ssh` argument strings
+- `&&` inside an `ssh` remote command string is fine — only the outer `Bash` tool call must not chain
 - Only `node delete` and `reserved-ip delete` need explicit user confirmation
 
 ## 2. Resolve Config
