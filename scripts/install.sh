@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install e2enetworks-skills (use-e2e) into Codex, Claude Code, Cursor, OpenCode, or Amp.
+# Install e2enetworks-skills (use-e2e-cloud) into Codex, Claude Code, Cursor, OpenCode, or Amp.
 # The e2ectl CLI is installed on first use of the skill, not here.
 #
 # Usage:
@@ -32,12 +32,12 @@ esac
 # Resolve skill source: local checkout if available, otherwise clone.
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
 if [[ -n "$script_dir" && -d "$script_dir/../plugins/e2e" ]]; then
-  src="$(cd "$script_dir/.." && pwd)/plugins/e2e/skills/use-e2e"
+  src="$(cd "$script_dir/.." && pwd)/plugins/e2e/skills/use-e2e-cloud"
 else
   command -v git >/dev/null || { echo "git required to clone $repo_url" >&2; exit 1; }
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
   git clone --depth 1 --branch "$repo_ref" "$repo_url" "$tmp/repo" >/dev/null
-  src="$tmp/repo/plugins/e2e/skills/use-e2e"
+  src="$tmp/repo/plugins/e2e/skills/use-e2e-cloud"
 fi
 [[ -d "$src" ]] || { echo "missing skill source: $src" >&2; exit 1; }
 
@@ -48,20 +48,20 @@ install_dir() {
   echo "Installed: $1"
 }
 
-[[ "$target" == codex    || "$target" == all ]] && install_dir "$codex_home/skills/use-e2e"
-[[ "$target" == claude   || "$target" == all ]] && install_dir "$claude_home/skills/use-e2e"
-[[ "$target" == cursor   || "$target" == all ]] && install_dir "$cursor_home/skills/use-e2e"
-[[ "$target" == opencode || "$target" == all ]] && install_dir "$opencode_home/skills/use-e2e"
+[[ "$target" == codex    || "$target" == all ]] && install_dir "$codex_home/skills/use-e2e-cloud"
+[[ "$target" == claude   || "$target" == all ]] && install_dir "$claude_home/skills/use-e2e-cloud"
+[[ "$target" == cursor   || "$target" == all ]] && install_dir "$cursor_home/skills/use-e2e-cloud"
+[[ "$target" == opencode || "$target" == all ]] && install_dir "$opencode_home/skills/use-e2e-cloud"
 if [[ "$target" == amp ]]; then
   command -v amp >/dev/null || { echo "amp CLI required for --target amp" >&2; exit 1; }
-  amp skill add "$src" --global --name use-e2e --overwrite
-  echo "Installed: amp skill use-e2e"
+  amp skill add "$src" --global --name use-e2e-cloud --overwrite
+  echo "Installed: amp skill use-e2e-cloud"
 fi
 
 echo
 echo "Done."
-[[ "$target" == codex    || "$target" == all ]] && echo "Codex:    $codex_home/skills/use-e2e" || :
-[[ "$target" == claude   || "$target" == all ]] && echo "Claude:   $claude_home/skills/use-e2e" || :
-[[ "$target" == cursor   || "$target" == all ]] && echo "Cursor:   $cursor_home/skills/use-e2e" || :
-[[ "$target" == opencode || "$target" == all ]] && echo "OpenCode: $opencode_home/skills/use-e2e" || :
-[[ "$target" == amp ]] && echo "Amp skill: use-e2e" || :
+[[ "$target" == codex    || "$target" == all ]] && echo "Codex:    $codex_home/skills/use-e2e-cloud" || :
+[[ "$target" == claude   || "$target" == all ]] && echo "Claude:   $claude_home/skills/use-e2e-cloud" || :
+[[ "$target" == cursor   || "$target" == all ]] && echo "Cursor:   $cursor_home/skills/use-e2e-cloud" || :
+[[ "$target" == opencode || "$target" == all ]] && echo "OpenCode: $opencode_home/skills/use-e2e-cloud" || :
+[[ "$target" == amp ]] && echo "Amp skill: use-e2e-cloud" || :

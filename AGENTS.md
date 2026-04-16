@@ -1,6 +1,6 @@
 # Agent Instructions: e2e Skills
 
-This repo ships one skill: `use-e2e`.
+This repo ships one skill: `use-e2e-cloud`.
 
 Use it for node management first. It also supports node actions, volumes, VPCs, and SSH keys.
 
@@ -96,11 +96,11 @@ Use it for node management first. It also supports node actions, volumes, VPCs, 
 
 ## Install Paths
 
-- Global Codex: `~/.codex/skills/use-e2e`
-- Global Claude: `~/.claude/skills/use-e2e`
-- Project Codex: `.codex/skills/use-e2e`
-- Project Claude: `.claude/skills/use-e2e`
+- Global Codex: `~/.codex/skills/use-e2e-cloud`
+- Global Claude: `~/.claude/skills/use-e2e-cloud`
+- Project Codex: `.codex/skills/use-e2e-cloud`
+- Project Claude: `.claude/skills/use-e2e-cloud`
 
 ## Skill File
 
-- `plugins/e2e/skills/use-e2e/SKILL.md`
+- `plugins/e2e/skills/use-e2e-cloud/SKILL.md`

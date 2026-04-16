@@ -11,7 +11,7 @@ e2enetworks-skills/
 │   │   └── plugin.json
 │   ├── hooks/
 │   └── skills/
-│       └── use-e2e/
+│       └── use-e2e-cloud/
 │           ├── SKILL.md
 │           ├── scripts/
 │           │   └── e2ectl-run.sh

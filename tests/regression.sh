@@ -43,8 +43,8 @@ write_minimal_skill_repo() {
   local repo_dir="$1"
   local marker="$2"
 
-  mkdir -p "$repo_dir/plugins/e2e/skills/use-e2e"
-  cat > "$repo_dir/plugins/e2e/skills/use-e2e/SKILL.md" <<EOF
+  mkdir -p "$repo_dir/plugins/e2e/skills/use-e2e-cloud"
+  cat > "$repo_dir/plugins/e2e/skills/use-e2e-cloud/SKILL.md" <<EOF
 # $marker
 EOF
 }
@@ -289,10 +289,10 @@ test_all_targets_install_to_expected_paths() {
   OPENCODE_HOME="$opencode_home" \
     bash "$repo_root/scripts/install.sh" all >/dev/null
 
-  [[ -f "$codex_home/skills/use-e2e/SKILL.md" ]] || fail "expected Codex install path"
-  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected Claude install path"
-  [[ -f "$cursor_home/skills/use-e2e/SKILL.md" ]] || fail "expected Cursor install path"
-  [[ -f "$opencode_home/skills/use-e2e/SKILL.md" ]] || fail "expected OpenCode install path"
+  [[ -f "$codex_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Codex install path"
+  [[ -f "$claude_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Claude install path"
+  [[ -f "$cursor_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected Cursor install path"
+  [[ -f "$opencode_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected OpenCode install path"
 
   cleanup_dir "$tmp_dir"
 
@@ -311,8 +311,8 @@ test_target_aliases_install_expected_paths() {
   CLAUDE_HOME="$claude_home" bash "$repo_root/scripts/install.sh" claude-code >/dev/null
   OPENCODE_HOME="$opencode_home" bash "$repo_root/scripts/install.sh" open-code >/dev/null
 
-  [[ -f "$claude_home/skills/use-e2e/SKILL.md" ]] || fail "expected claude-code alias to install into Claude home"
-  [[ -f "$opencode_home/skills/use-e2e/SKILL.md" ]] || fail "expected open-code alias to install into OpenCode home"
+  [[ -f "$claude_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected claude-code alias to install into Claude home"
+  [[ -f "$opencode_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected open-code alias to install into OpenCode home"
 
   cleanup_dir "$tmp_dir"
 
@@ -356,16 +356,16 @@ test_repo_ref_installs_branch_tag_and_main() {
   REPO_URL="$repo_url" REPO_REF="feature-branch" CLAUDE_HOME="$branch_home" \
     bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'BRANCH_REF' "$branch_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref branch install to use branch content"
+  grep -F -q 'BRANCH_REF' "$branch_home/skills/use-e2e-cloud/SKILL.md" || fail "expected --repo-ref branch install to use branch content"
 
   REPO_URL="$repo_url" REPO_REF="v1.2.3" CLAUDE_HOME="$tag_home" \
     bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'TAG_REF' "$tag_home/skills/use-e2e/SKILL.md" || fail "expected --repo-ref tag install to use tag content"
+  grep -F -q 'TAG_REF' "$tag_home/skills/use-e2e-cloud/SKILL.md" || fail "expected --repo-ref tag install to use tag content"
 
   REPO_URL="$repo_url" CLAUDE_HOME="$main_home" bash "$script_copy" claude >/dev/null
 
-  grep -F -q 'MAIN_REF' "$main_home/skills/use-e2e/SKILL.md" || fail "expected default remote install to use main content"
+  grep -F -q 'MAIN_REF' "$main_home/skills/use-e2e-cloud/SKILL.md" || fail "expected default remote install to use main content"
 
   cleanup_dir "$tmp_dir"
 
@@ -384,7 +384,7 @@ test_public_docs_remove_internal_and_prerelease_language() {
 }
 
 test_claude_skill_allowed_tools() {
-  local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
+  local skill_file="$repo_root/plugins/e2e/skills/use-e2e-cloud/SKILL.md"
 
   grep -F -q 'Bash(e2ectl *)' "$skill_file" || fail "expected Claude skill to pre-allow e2ectl commands"
   grep -F -q 'Bash(npm *)' "$skill_file" || fail "expected Claude skill to pre-allow npm commands"
@@ -406,8 +406,8 @@ test_internal_docs_capture_hidden_mode_without_prerelease_language() {
 }
 
 test_skill_docs_match_installed_cli_contract() {
-  local skill_file="$repo_root/plugins/e2e/skills/use-e2e/SKILL.md"
-  local access_file="$repo_root/plugins/e2e/skills/use-e2e/references/access.md"
+  local skill_file="$repo_root/plugins/e2e/skills/use-e2e-cloud/SKILL.md"
+  local access_file="$repo_root/plugins/e2e/skills/use-e2e-cloud/references/access.md"
 
   grep -F -q '@e2enetworks-oss/e2ectl' "$skill_file" || fail "expected SKILL.md to document the official npm package"
   grep -F -q 'npm install -g @e2enetworks-oss/e2ectl' "$access_file" || \
@@ -417,7 +417,7 @@ test_skill_docs_match_installed_cli_contract() {
 }
 
 test_relative_bin_with_cwd() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local output=""
@@ -446,7 +446,7 @@ test_relative_bin_with_cwd() {
 }
 
 test_public_mode_prefers_installed_e2ectl() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local global_dir=""
@@ -472,7 +472,7 @@ test_public_mode_prefers_installed_e2ectl() {
 }
 
 test_public_mode_missing_e2ectl_shows_guidance() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local output=""
   local rc=0
 
@@ -489,7 +489,7 @@ test_public_mode_missing_e2ectl_shows_guidance() {
 }
 
 test_internal_mode_prefers_repo_checkout() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local global_dir=""
@@ -526,7 +526,7 @@ EOF
 }
 
 test_internal_mode_falls_back_to_installed_e2ectl() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local global_dir=""
@@ -550,7 +550,7 @@ test_internal_mode_falls_back_to_installed_e2ectl() {
 }
 
 test_relative_env_file_with_cwd() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local source_dir=""
@@ -574,7 +574,7 @@ test_relative_env_file_with_cwd() {
 }
 
 test_bad_env_file_fails_fast() {
-  local script_path="$repo_root/plugins/e2e/skills/use-e2e/scripts/e2ectl-run.sh"
+  local script_path="$repo_root/plugins/e2e/skills/use-e2e-cloud/scripts/e2ectl-run.sh"
   local tmp_dir=""
   local project_dir=""
   local source_dir=""
