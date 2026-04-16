@@ -273,12 +273,6 @@ If no matching key exists, upload from file:
 CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <alias>
 ```
 
-Or using `-` to read from stdin (use a temp file in the agent — pipes violate the no-chain rule):
-
-```bash
-CLI ssh-key create --label <key-label> --public-key-file ~/.ssh/id_ed25519.pub --alias <alias>
-```
-
 Attach:
 
 ```bash

@@ -28,8 +28,8 @@ jobs:
             if [[ $curl_rc -ne 0 ]]; then
               printf 'FAIL curl-error(%d): %s\n' "$curl_rc" "$url" >&2
               fail=1
-            elif [[ "$status" == "404" ]]; then
-              printf 'FAIL 404: %s\n' "$url" >&2
+            elif [[ "$status" == "404" ]] || [[ "$status" == 5* ]]; then
+              printf 'FAIL %s: %s\n' "$status" "$url" >&2
               fail=1
             else
               printf 'OK %s: %s\n' "$status" "$url"

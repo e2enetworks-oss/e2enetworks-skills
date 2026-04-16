@@ -473,7 +473,7 @@ test_public_mode_prefers_installed_e2ectl() {
 
   cleanup_dir "$tmp_dir"
 
-  pass "public mode prefers installed e2ectl over cwd-local bins"
+  pass "public mode prefers project-local e2ectl over global installed CLI"
 }
 
 test_public_mode_missing_e2ectl_shows_guidance() {
@@ -621,15 +621,24 @@ test_ci_workflows_valid_yaml() {
     return
   fi
 
+  if ! python3 -c "import yaml" 2>/dev/null; then
+    pass "python3 yaml module not installed — skipping CI YAML syntax check"
+    return
+  fi
+
+  local file_count=0
   local failed=0
   while IFS= read -r -d '' yaml_file; do
+    file_count=$((file_count + 1))
     if ! python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$yaml_file" 2>/dev/null; then
-      fail "invalid YAML syntax: $yaml_file"
+      printf 'FAIL: invalid YAML syntax: %s\n' "$yaml_file" >&2
       failed=1
     fi
-  done < <(find "$workflow_dir" -name "*.yml" -o -name "*.yaml" -print0 2>/dev/null)
+  done < <(find "$workflow_dir" \( -name "*.yml" -o -name "*.yaml" \) -print0 2>/dev/null)
 
-  [[ "$failed" == "0" ]] && pass "all CI workflow files are valid YAML"
+  [[ "$file_count" -gt 0 ]] || fail "no YAML files found in $workflow_dir"
+  [[ "$failed" == "0" ]] || fail "one or more CI workflow files have invalid YAML"
+  pass "all CI workflow files are valid YAML ($file_count files checked)"
 }
 
 main() {

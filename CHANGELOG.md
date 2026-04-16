@@ -10,6 +10,6 @@ All notable changes to `e2enetworks-skills` are documented here.
 - Added error recovery tables to `nodes.md` and `vpc.md`
 - Fixed `security-group update` to document required `--name` flag
 - Fixed stdin pipe pattern in `nodes.md` (use `--public-key-file` directly)
-- Fixed dead `GettingStarted/index` URL in `docs-index.md`
+- Added `docs-index.md` with verified E2E documentation URLs (`GettingStarted/index` omitted — returns 404 in browser)
 - Added CI workflow (regression tests + docs URL validation)
 - Updated CONTRIBUTING.md file tree to reflect actual reference files
