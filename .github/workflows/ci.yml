@@ -23,8 +23,15 @@ jobs:
           docs_file="plugins/e2e/skills/use-e2e-cloud/references/docs-index.md"
           fail=0
           while IFS= read -r url; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null)
-            curl_rc=$?
+            curl_rc=0
+            for attempt in 1 2 3; do
+              status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 --connect-timeout 10 "$url" 2>/dev/null) || curl_rc=$?
+              if [[ $curl_rc -eq 0 ]]; then
+                break
+              elif [[ $attempt -lt 3 ]]; then
+                sleep 2
+              fi
+            done
             if [[ $curl_rc -ne 0 ]]; then
               printf 'FAIL curl-error(%d): %s\n' "$curl_rc" "$url" >&2
               fail=1
