@@ -72,6 +72,8 @@ If any command returns `Profile "<alias>" was not found`: tell the user in plain
 | List or create projects | `references/project.md` |
 | Provision, upgrade, or delete nodes | `references/nodes.md` |
 | Power on/off, save image, attach resources | `references/nodes.md` |
+| List, rename, or delete saved images | `references/image.md` |
+| Create a node from a saved image | `references/image.md` |
 | Manage reserved IPs | `references/reserved-ip.md` |
 | Create or attach volumes | `references/volume.md` |
 | Create or attach VPCs | `references/vpc.md` |
@@ -90,6 +92,7 @@ These rules are not obvious from the CLI — always apply them.
 - Do not attempt any attach action while a node is `Creating`. Poll `node get` until `Running`.
 - After any power or state-changing action, always follow up with `node get` — never show only the action receipt.
 - `node action public-ip detach` removes public reachability — confirm with the user first.
+- To create a node from a saved image, add `--saved-image-template-id <template-id>` (from `image list`) to any standard `node create` call. `--image` still takes the catalog image identifier, not the saved image name.
 
 **VPC:**
 - `node action vpc attach` takes the **Network ID** (from `vpc list`), not the VPC ID from `vpc create`.
@@ -130,6 +133,7 @@ Always apply these unless the user says otherwise:
 
 - setup, config, and onboarding: `references/access.md`
 - nodes and node actions: `references/nodes.md`
+- saved images (list, rename, delete, create node from image): `references/image.md`
 - projects: `references/project.md`
 - reserved IPs: `references/reserved-ip.md`
 - block storage volumes: `references/volume.md`

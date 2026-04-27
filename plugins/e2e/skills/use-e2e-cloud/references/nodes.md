@@ -111,6 +111,19 @@ CLI node create \
   --ssh-key-id <ssh-key-id>
 ```
 
+Create from a saved image (add `--saved-image-template-id` to a regular create):
+
+```bash
+CLI node create \
+  --alias <alias> \
+  --name <node-name> \
+  --plan "<full-plan-string-from-catalog>" \
+  --image <catalog-image> \
+  --saved-image-template-id <template-id>
+```
+
+`<catalog-image>` is the same image identifier from `node catalog plans` (e.g. `Ubuntu-24.04-Distro`). Find `<template-id>` in the `Template ID` column of `e2ectl image list`. See `references/image.md` for the full saved-image workflow.
+
 The `--plan` value must be the exact full string from `node catalog plans` output
 (e.g. `"c2.large (8 vCPUs / 16 GB RAM / 100 GB SSD)"`).
 Never use the SKU shortname alone (e.g. `c2.large`) — it causes a 412 error.
@@ -237,6 +250,7 @@ Do not treat action `Status: done` as the final power state by itself.
 - E1 nodes do **not** include a bundled reserved IP; allocate one separately if a stable public IP is needed
 - if alias lookup fails, stop and resolve config before retrying
 - SSH keys can be attached at create time with `--ssh-key-id` — no need for a separate attach step if the key already exists
+- to create from a saved image, run `image list` first to get the `Template ID`, then add `--saved-image-template-id <template-id>` to the standard create command; `--image` still takes the catalog image identifier, not the saved image name
 
 ## Node Lifecycle Order
 
