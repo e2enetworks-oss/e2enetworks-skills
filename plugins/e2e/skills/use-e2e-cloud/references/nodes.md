@@ -32,8 +32,20 @@ Options: one button per committed option from catalog output
 Ask: "How much root disk space do you need?"
 Options: `75 GB` / `100 GB` / `150 GB` / `200 GB` / `Enter a custom size` (free-text follow-up; valid range 75–2400 GB)
 
-**Step 7 — SSH key** (if not given — run `ssh-key list` first):
+**Step 7 — SSH key** (run `ssh-key list` first):
+
+First, decide whether SSH key is **required** or **optional** for this node:
+
+- **Required** — if the user's stated purpose involves deploying, running, installing, configuring, or SSH-ing into the node (e.g. "create a node and deploy my app", "set up nginx", "I want to SSH in", "host a backend"). Without a key, the user cannot reach the node, and the deployment they asked for cannot happen.
+- **Optional** — if the user asked only to provision a node with no follow-on action that needs shell access.
+
+**If required:**
 If keys exist, ask: "Which SSH key would you like to use for access?"
+Options: one button per existing key label
+If no keys exist, tell the user: "An SSH key is required for the deployment you asked for. Let's upload one now." Then run the upload flow (`ssh-key create --label <label> --public-key-file <path>`) — do not offer a `Skip` option.
+
+**If optional:**
+If keys exist, ask: "Would you like to attach an SSH key at creation?"
 Options: one button per existing key label plus `No SSH key`
 If no keys exist, ask: "No SSH keys found. Would you like to upload one now?"
 Options: `Yes, upload my key` / `Skip`
