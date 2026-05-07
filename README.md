@@ -74,8 +74,6 @@ In Claude Code, you can also run `/use-e2e-cloud`.
 - Managed databases (DBaaS) — MariaDB, MySQL, PostgreSQL — networking and whitelisting
 - Cost estimation for any service before provisioning
 - Frontend and backend deployment on a node
-- DNS and HTTPS (Certbot)
-- Fleet inventory and status checks
 
 ## Contributing
 
