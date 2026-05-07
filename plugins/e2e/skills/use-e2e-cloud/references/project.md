@@ -10,6 +10,8 @@ Project commands operate at the account level. They do not require `--project-id
 
 Use `project list` to discover numeric project IDs before running resource commands that need `--project-id`.
 
+**IAM-shared projects are not listed.** `project list` returns only projects **owned by this account**. If the user has been added to another account's project via IAM, that project will not appear in the listing — they must obtain the project ID from the owner (or from the project page in E2E MyAccount) and use it directly with `--project-id`. See `references/access.md` Step 5 for the user-facing flow.
+
 ## Commands
 
 List all accessible projects for the account:
