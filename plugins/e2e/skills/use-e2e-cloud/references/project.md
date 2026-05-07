@@ -59,6 +59,3 @@ CLI config set-context --alias <alias> --default-project-id <new-project-id> --d
 - show id, name, and starred status in a compact list
 - after create, show the new project id and suggest setting it as the default context if needed
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount

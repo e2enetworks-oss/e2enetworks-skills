@@ -212,6 +212,3 @@ CLI config remove --alias <alias>
 - use `--json` only when parsing output programmatically
 - after setup is complete, summarize: alias, project id, location — one line each
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/GettingStarted/iam

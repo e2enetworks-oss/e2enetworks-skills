@@ -298,6 +298,3 @@ ssh -i <key> root@<public-ip> "mysql_secure_installation"
 - for failed deploys, show the error line and the fix — not the full log
 - do not dump long stdout unless the user asks
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/nodes

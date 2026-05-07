@@ -4,6 +4,74 @@ In this file, `CLI` means the resolved command from `SKILL.md`.
 
 Do not use repeated `--help` calls for these workflows. Use these commands directly.
 
+## Missing Specs — Ask Before Creating
+
+If the user asks to create a node without specifying all required details, ask for each missing value one at a time using `AskUserQuestion` before running any command. Never assume or default any value silently.
+
+**Step 1 — node name** (if not given):
+Ask: "What would you like to name this node?"
+Options: suggest 2–3 names derived from the user's stated purpose (e.g. if they said "run nginx", suggest `nginx-server`, `web-node`; if they said "postgres", suggest `postgres-node`, `db-server`). If no purpose was stated, suggest `my-node`, `node-1`. Always include `Enter a custom name` as the last option (free-text follow-up).
+
+**Step 2 — OS** (run `node catalog os` first, then ask):
+Ask: "Which operating system would you like?"
+Options: one button per OS row from catalog output
+
+**Step 3 — plan** (run `node catalog plans` for the chosen OS, then ask):
+Ask: "Which plan suits your needs?"
+Options: one button per plan from catalog output
+
+**Step 4 — billing type** (if not given):
+Ask: "How would you like to be billed?"
+Options: `Hourly — pay as you go` / `Committed — save with a fixed term`
+
+**Step 5 — committed plan** (only if committed billing chosen):
+Ask: "Which committed plan would you like?"
+Options: one button per committed option from catalog output
+
+**Step 6 — root disk size** (only if selected plan is E1 or E1WC):
+Ask: "How much root disk space do you need?"
+Options: `75 GB` / `100 GB` / `150 GB` / `200 GB` / `Enter a custom size` (free-text follow-up; valid range 75–2400 GB)
+
+**Step 7 — SSH key** (if not given — run `ssh-key list` first):
+If keys exist, ask: "Which SSH key would you like to use for access?"
+Options: one button per existing key label plus `No SSH key`
+If no keys exist, ask: "No SSH keys found. Would you like to upload one now?"
+Options: `Yes, upload my key` / `Skip`
+
+**Step 8 — saved image** (only if the user mentioned a saved image — run `image list` first):
+Ask: "Which saved image would you like to start from?"
+Options: one button per saved image name plus `None — use a standard image`
+
+**Step 9 — private network (VPC)**:
+Ask: "Would you like to connect this node to a private network?"
+Options: `Yes` / `No`
+If yes: run `vpc list`, ask: "Which VPC would you like to use?" with one button per VPC showing name and CIDR.
+
+**Step 10 — reserved IP** (run `reserved-ip list` first):
+Ask: "Would you like to assign a reserved IP to this node?"
+Options: one button per available unattached reserved IP (showing the IP address) plus `No — use the default public IP`
+
+**Security group:** Only include if the user explicitly specifies one. Do not ask — the CLI attaches the region default automatically.
+
+**Step 11 — confirmation summary:**
+Before running any command, display a summary of all selected options:
+
+> Here's what will be created:
+> - **Name:** `<name>`
+> - **OS:** `<os>`
+> - **Plan:** `<plan>`
+> - **Billing:** `<hourly / committed plan>`
+> - **SSH Key:** `<key label or None>`
+> - **VPC:** `<vpc name or None>`
+> - **Reserved IP:** `<ip or None>`
+
+Ask: "Ready to create this node?"
+Options: `Yes, create it` / `No, go back`
+
+If "No, go back" — ask which detail they'd like to change and loop back to that step.
+
+Do not proceed to `node create` until the user confirms with "Yes, create it".
+
 ## Catalog Discovery (required before create)
 
 **Always run these two commands before `node create`. Never skip them.**
@@ -89,7 +157,6 @@ CLI node create \
 ```
 
 Create (E1 / E1WC plans — `--disk` required, rejected for all other plans):
-See E1 series docs: https://docs.e2enetworks.com/docs/myaccount/node/e1-series/
 
 ```bash
 CLI node create \
@@ -239,7 +306,7 @@ CLI node list --alias <alias>
 
 Do not treat action `Status: done` as the final power state by itself.
 
-## Create Rules
+## Rules
 
 - ask for node name first
 - run `catalog os` then `catalog plans` — never skip catalog discovery before create
@@ -387,6 +454,3 @@ Suggest `/data` if no mount path is provided.
 - after create, attach, or delete, say the next useful step
 - do not show raw JSON unless asked
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index

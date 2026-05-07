@@ -98,6 +98,3 @@ The node must be in `Running` status before saving. After the command completes,
 | `--saved-image-template-id` not found | Wrong ID or image deleted | Re-run `image list` to get the current `Template ID` |
 | `--image` rejected on saved-image create | Using the saved image's OS name instead of a catalog image identifier | Use the `Image` value from `node catalog plans` output |
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/create_image/
