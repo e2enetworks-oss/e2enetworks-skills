@@ -4,6 +4,48 @@ In this file, `CLI` means the resolved command from `SKILL.md`.
 
 Do not use repeated `--help` calls for these workflows. Use these commands directly.
 
+## Missing Specs — Ask Before Creating
+
+If the user asks to create a VPC without specifying all required details, ask for each missing value one at a time using `AskUserQuestion` before running any command. Never assume or default any value silently.
+
+**Step 1 — IP range assignment** (ask first — most fundamental choice):
+Ask: "How would you like to set up the IP range for this network?"
+Options: `Let E2E assign it automatically` / `I'll specify my own IP range`
+
+**Step 2 — custom CIDR** (only if user chose custom):
+Ask: "What IP range would you like? (e.g. 10.0.0.0/16)" (free-text)
+
+**Step 3 — VPC name** (if not given):
+Ask: "What would you like to name this network?"
+Options: suggest 2–3 names derived from the user's stated purpose (e.g. `app-vpc`, `prod-network`). Always include `Enter a custom name` as the last option (free-text follow-up).
+
+**Step 4 — billing type** (run `vpc plans` first, if not given):
+Ask: "How would you like to be billed?"
+Options: `Hourly — pay as you go` / `Committed — save with a fixed term`
+
+**Step 5 — committed plan** (only if committed billing chosen — from `vpc plans` output):
+Ask: "Which committed plan would you like?"
+Options: one button per committed plan from `vpc plans` output
+
+**Step 6 — post-commit behavior** (only if committed billing chosen):
+Ask: "What should happen when the committed term ends?"
+Options: `Auto-renew` / `Switch to hourly billing`
+
+**Step 7 — confirmation summary:**
+Before running any command, display a summary of all selected options:
+
+> Here's what will be created:
+> - **Name:** `<name>`
+> - **IP range:** `<E2E assigned / custom CIDR>`
+> - **Billing:** `<hourly / committed plan>`
+
+Ask: "Ready to create this network?"
+Options: `Yes, create it` / `No, go back`
+
+If "No, go back" — ask which detail they'd like to change and loop back to that step.
+
+Do not proceed to `vpc create` until the user confirms with "Yes, create it".
+
 ## VPC ID Disambiguation
 
 The API returns two different IDs when you create or list a VPC:
@@ -83,7 +125,7 @@ CLI vpc delete <network-id> --force --alias <alias>
 
 ## Attach to a Node
 
-`node action vpc attach` only works when the VPC state is `Active`.
+`node action vpc attach` only works when the VPC state is `Active`. Use case-insensitive matching (`grep -i`).
 After `vpc create`, poll `vpc list` until the state becomes `Active` before attaching.
 Do not attempt attach while state is `Creating` — it will fail with "VPC X not found".
 
@@ -100,6 +142,18 @@ Detach:
 ```bash
 CLI node action vpc detach <node-id> --vpc-id <network-id> --alias <alias>
 ```
+
+## When to Use VPC
+
+| Scenario | VPC needed? | Notes |
+|---|---|---|
+| DBaaS with private networking | Yes | Attach VPC at DBaaS create or after via `dbaas network vpc attach` |
+| DBaaS with public IP only | No | DBaaS can be reached via public endpoint without VPC |
+| Nodes communicating privately | Yes | Attach same VPC to all nodes |
+| Load balancer with internal backends | Yes | LB and backends in same VPC |
+| No private networking needed | No | Nodes with public IPs only |
+
+Security groups do not apply to DBaaS. DBaaS access is controlled via IP whitelisting, not security groups.
 
 ## Full Networking Workflow
 
@@ -135,6 +189,4 @@ CLI node get <node-id> --alias <alias>
 - after attach, confirm the node now has a private IP
 - do not show raw JSON unless asked
 
-## Docs
 
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/network/vpc

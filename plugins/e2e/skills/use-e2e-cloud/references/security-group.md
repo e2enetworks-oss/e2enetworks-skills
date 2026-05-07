@@ -6,9 +6,13 @@ Do not use repeated `--help` calls for these workflows. Use these commands direc
 
 ## Overview
 
-Security groups are sets of firewall rules attached to nodes. Rules are defined in a
+Security groups are sets of firewall rules attached to nodes and load balancers. Rules are defined in a
 backend-compatible JSON file. The `update` command performs a **full replacement** of
 the rule set — it is not additive. Always provide the complete desired rule set when updating.
+
+- **Nodes:** attach via `node action security-group attach`
+- **Load balancers:** attach at create time via `--security-group <sg-id>` on `lb create`
+- **DBaaS:** security groups do **not** apply — access is controlled via IP whitelisting (`dbaas whitelist`)
 
 ## Commands
 
@@ -218,11 +222,7 @@ CLI security-group create --name <sg-name> --rules-file /tmp/rules.json --alias 
 ## Output Rules
 
 - after list, show id, name, description, and node attachment count
-- after create, show the new security group id and suggest attaching it to a node
-- after update, confirm which security group was updated and that the rule set was replaced
+- after create, show the new security group id and suggest attaching it to a node or using `--security-group` on `lb create`
 - after attach/detach, confirm the node and security group involved
 - do not show raw JSON unless asked
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/network/security_grp

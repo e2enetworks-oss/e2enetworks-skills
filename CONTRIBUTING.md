@@ -10,12 +10,16 @@ e2enetworks-skills/
 │   └── skills/
 │       └── use-e2e-cloud/
 │           ├── SKILL.md
+│           ├── VERSION
 │           ├── scripts/
 │           │   └── e2ectl-run.sh
 │           └── references/
 │               ├── access.md
+│               ├── cost-estimation.md
+│               ├── dbaas.md
 │               ├── deploy.md
-│               ├── docs-index.md
+│               ├── image.md
+│               ├── load-balancer.md
 │               ├── nodes.md
 │               ├── project.md
 │               ├── reserved-ip.md
@@ -27,12 +31,16 @@ e2enetworks-skills/
 ├── tests/
 │   └── regression.sh
 ├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   └── feature_request.md
 │   └── workflows/
 │       └── ci.yml
 ├── AGENTS.md
 ├── CHANGELOG.md
 ├── CLAUDE.md
-└── README.md
+├── README.md
+└── VERSION
 ```
 
 ## Development notes
@@ -40,9 +48,8 @@ e2enetworks-skills/
 - Keep `SKILL.md` concise and routing-focused.
 - Keep workflow behavior in action-oriented references.
 - Keep deep schema and reference material separate from runbooks.
-- Prefer canonical CLI syntax in examples.
+- User-facing prompts must speak in natural language — never expose CLI flag names, formats, or syntax to the user.
 
 ## References
 
 - [Agent Skills Specification](https://agentskills.io/specification)
-- [E2E Networks Docs](https://docs.e2enetworks.com)

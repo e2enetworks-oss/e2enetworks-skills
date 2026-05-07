@@ -4,6 +4,91 @@ In this file, `CLI` means the resolved command from `SKILL.md`.
 
 Do not use repeated `--help` calls for these workflows. Use these commands directly.
 
+## Missing Specs — Ask Before Creating
+
+If the user asks to create a node without specifying all required details, ask for each missing value one at a time using `AskUserQuestion` before running any command. Never assume or default any value silently.
+
+**Step 1 — node name** (if not given):
+Ask: "What would you like to name this node?"
+Options: suggest 2–3 names derived from the user's stated purpose (e.g. if they said "run nginx", suggest `nginx-server`, `web-node`; if they said "postgres", suggest `postgres-node`, `db-server`). If no purpose was stated, suggest `my-node`, `node-1`. Always include `Enter a custom name` as the last option (free-text follow-up).
+
+**Step 2 — OS** (run `node catalog os` first, then ask):
+Ask: "Which operating system would you like?"
+Options: one button per OS row from catalog output
+
+**Step 3 — plan** (run `node catalog plans` for the chosen OS, then ask):
+Ask: "Which plan suits your needs?"
+Options: one button per plan from catalog output
+
+**Step 4 — billing type** (if not given):
+Ask: "How would you like to be billed?"
+Options: `Hourly — pay as you go` / `Committed — save with a fixed term`
+
+**Step 5 — committed plan** (only if committed billing chosen):
+Ask: "Which committed plan would you like?"
+Options: one button per committed option from catalog output
+
+**Step 6 — root disk size** (only if selected plan is E1 or E1WC):
+Ask: "How much root disk space do you need?"
+Options: `75 GB` / `100 GB` / `150 GB` / `200 GB` / `Enter a custom size` (free-text follow-up; valid range 75–2400 GB)
+
+**Step 7 — SSH key**:
+
+Decide whether deployment / shell access is implied for this node:
+
+- **Deployment implied** — the user's stated purpose involves deploying, running, installing, configuring, or SSH-ing into the node (e.g. "create a node and deploy my app", "set up nginx", "I want to SSH in", "host a backend").
+- **Bare provisioning** — the user asked only to provision a node with no follow-on action that needs shell access.
+
+**If deployment is implied — do not ask. Auto-attach the current host's SSH key:**
+
+1. Read the local public key from `~/.ssh/id_ed25519.pub` (or `~/.ssh/id_rsa.pub` if the ed25519 key is missing). If neither exists, generate one with `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""` and proceed.
+2. Run `ssh-key list` to check whether the same public key is already uploaded under any label.
+3. If found, capture its `<ssh-key-id>` and attach it at create time via `--ssh-key-id`. If not found, upload it with `ssh-key create --label node-access --public-key-file ~/.ssh/id_ed25519.pub --alias <alias>`, then attach at create time.
+4. Tell the user in one line what happened, e.g. "Using your local SSH key (`node-access`) so we can deploy after the node is up."
+
+Do not surface an SSH-key question, list, or `Skip` option in this path.
+
+**If bare provisioning — keep it optional:**
+
+Run `ssh-key list`. If keys exist, ask: "Would you like to attach an SSH key at creation?"
+Options: one button per existing key label plus `No SSH key`
+If no keys exist, ask: "No SSH keys found. Would you like to upload one now?"
+Options: `Yes, upload my key` / `Skip`
+
+**Step 8 — saved image** (only if the user mentioned a saved image — run `image list` first):
+Ask: "Which saved image would you like to start from?"
+Options: one button per saved image name plus `None — use a standard image`
+
+**Step 9 — private network (VPC)**:
+Ask: "Would you like to connect this node to a private network?"
+Options: `Yes` / `No`
+If yes: run `vpc list`, ask: "Which VPC would you like to use?" with one button per VPC showing name and CIDR.
+
+**Step 10 — reserved IP** (run `reserved-ip list` first):
+Ask: "Would you like to assign a reserved IP to this node?"
+Options: one button per available unattached reserved IP (showing the IP address) plus `No — use the default public IP`
+
+**Security group:** Only include if the user explicitly specifies one. Do not ask — the CLI attaches the region default automatically.
+
+**Step 11 — confirmation summary:**
+Before running any command, display a summary of all selected options:
+
+> Here's what will be created:
+> - **Name:** `<name>`
+> - **OS:** `<os>`
+> - **Plan:** `<plan>`
+> - **Billing:** `<hourly / committed plan>`
+> - **SSH Key:** `<key label or None>`
+> - **VPC:** `<vpc name or None>`
+> - **Reserved IP:** `<ip or None>`
+
+Ask: "Ready to create this node?"
+Options: `Yes, create it` / `No, go back`
+
+If "No, go back" — ask which detail they'd like to change and loop back to that step.
+
+Do not proceed to `node create` until the user confirms with "Yes, create it".
+
 ## Catalog Discovery (required before create)
 
 **Always run these two commands before `node create`. Never skip them.**
@@ -89,7 +174,6 @@ CLI node create \
 ```
 
 Create (E1 / E1WC plans — `--disk` required, rejected for all other plans):
-See E1 series docs: https://docs.e2enetworks.com/docs/myaccount/node/e1-series/
 
 ```bash
 CLI node create \
@@ -110,6 +194,19 @@ CLI node create \
   --image <image> \
   --ssh-key-id <ssh-key-id>
 ```
+
+Create from a saved image (add `--saved-image-template-id` to a regular create):
+
+```bash
+CLI node create \
+  --alias <alias> \
+  --name <node-name> \
+  --plan "<full-plan-string-from-catalog>" \
+  --image <catalog-image> \
+  --saved-image-template-id <template-id>
+```
+
+`<catalog-image>` is the same image identifier from `node catalog plans` (e.g. `Ubuntu-24.04-Distro`). Find `<template-id>` in the `Template ID` column of `e2ectl image list`. See `references/image.md` for the full saved-image workflow.
 
 The `--plan` value must be the exact full string from `node catalog plans` output
 (e.g. `"c2.large (8 vCPUs / 16 GB RAM / 100 GB SSD)"`).
@@ -226,7 +323,7 @@ CLI node list --alias <alias>
 
 Do not treat action `Status: done` as the final power state by itself.
 
-## Create Rules
+## Rules
 
 - ask for node name first
 - run `catalog os` then `catalog plans` — never skip catalog discovery before create
@@ -237,6 +334,7 @@ Do not treat action `Status: done` as the final power state by itself.
 - E1 nodes do **not** include a bundled reserved IP; allocate one separately if a stable public IP is needed
 - if alias lookup fails, stop and resolve config before retrying
 - SSH keys can be attached at create time with `--ssh-key-id` — no need for a separate attach step if the key already exists
+- to create from a saved image, run `image list` first to get the `Template ID`, then add `--saved-image-template-id <template-id>` to the standard create command; `--image` still takes the catalog image identifier, not the saved image name
 
 ## Node Lifecycle Order
 
@@ -373,6 +471,3 @@ Suggest `/data` if no mount path is provided.
 - after create, attach, or delete, say the next useful step
 - do not show raw JSON unless asked
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/node/virt_comp_node/index

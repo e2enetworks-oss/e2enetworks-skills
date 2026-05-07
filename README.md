@@ -62,14 +62,18 @@ In Claude Code, you can also run `/use-e2e-cloud`.
 `use-e2e-cloud` covers:
 
 - Profile and config setup
-- Node provisioning and lifecycle
-- Node actions (power, save-image, attach)
+- Node provisioning and lifecycle (create, upgrade, delete, power)
+- Node actions (power, save-image, attach VPC / volume / security group / SSH key)
+- Saved images (list, rename, delete, create node from a saved image)
 - SSH key upload and attach
-- VPC create and attach
+- VPC create and attach (Standard or Custom CIDR)
 - Volume create, attach, and mount
+- Reserved IP allocation, attach, and release
+- Security group create, update, attach, and detach
+- Load balancers (ALB, NLB, internal) — backend groups, SSL, VPC
+- Managed databases (DBaaS) — MariaDB, MySQL, PostgreSQL — networking and whitelisting
+- Cost estimation for any service before provisioning
 - Frontend and backend deployment on a node
-- DNS and HTTPS (Certbot)
-- Fleet inventory and status checks
 
 ## Contributing
 
