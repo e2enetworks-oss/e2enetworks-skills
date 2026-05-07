@@ -39,16 +39,81 @@ If no state file, AND this is the first message of the session, AND the user's m
 
 State file schema (always include `schema_version`):
 ```json
-{
-  "schema_version": 1,
-  "step": "<current-step>",
-  "node_id": "<node-id>",
-  "alias": "<profile-alias>",
-  "updated_at": "<iso8601-timestamp>"
-}
+{ "checked_at": "<iso8601>", "result": "up-to-date|upgrade-available", "remote_version": "<x.y.z>" }
+```
+If it exists, `checked_at` is within **60 minutes** of now, and `result` is `"up-to-date"` → skip the rest of Section 0 and proceed to Section 2.
+
+If `result` is `"upgrade-available"` but the snooze file (Section 0d) is still valid for that remote version → also skip.
+
+### 0c. Fetch remote version
+
+Run:
+```bash
+curl -fsSL --max-time 10 https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/VERSION
 ```
 
-## 1. Resolve CLI
+Capture as `REMOTE_VERSION`. If the command fails, returns empty output, or the output does not match `^[0-9]+\.[0-9]+\.[0-9]+$` → treat `REMOTE_VERSION` as equal to `LOCAL_VERSION` and proceed to Section 2 (**fail-open — never block the user on a network error**).
+
+Write `~/.e2e/.version-check-cache.json` immediately after the fetch (`mkdir -p ~/.e2e` first if needed):
+- `REMOTE_VERSION == LOCAL_VERSION` → `result: "up-to-date"`, TTL 60 min
+- `REMOTE_VERSION > LOCAL_VERSION` → `result: "upgrade-available"`, TTL 720 min
+
+### 0d. Compare versions and check snooze
+
+Compare `LOCAL_VERSION` and `REMOTE_VERSION` by splitting on `.` and comparing major, minor, patch as integers in order.
+
+If `REMOTE_VERSION <= LOCAL_VERSION` → proceed to Section 2.
+
+If `REMOTE_VERSION > LOCAL_VERSION`:
+1. Read `~/.e2e/.version-snooze.json` if it exists:
+   ```json
+   { "snoozed_until": "<iso8601>", "remote_version": "<x.y.z>" }
+   ```
+2. Snooze is **active** only if ALL three conditions hold:
+   - File exists
+   - `snoozed_until` is in the future
+   - `remote_version` in the file **equals** `REMOTE_VERSION` (a newer release bypasses any prior snooze)
+3. If snooze is active → proceed to Section 2 silently.
+4. If snooze is not active → go to Section 0e.
+
+### 0e. Prompt the user
+
+Use `AskUserQuestion`:
+- **question**: `A newer version of the use-e2e-cloud skill is available. You have **v{LOCAL_VERSION}** installed; the latest is **v{REMOTE_VERSION}**. Would you like to upgrade now?`
+- **options**: `Yes` / `No`
+
+**"Yes"** → Run the installer automatically:
+```bash
+curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | bash
+```
+If the command succeeds, tell the user:
+> Upgraded to v{REMOTE_VERSION}. Please start a fresh conversation and invoke `/use-e2e-cloud` again — the new version is now installed and will load on your next session.
+
+If the command fails, tell the user what went wrong and suggest they run the installer manually.
+
+Either way, **stop** (do not proceed to Section 2). The currently loaded SKILL.md is from the old version; the new version must load fresh in a new session.
+
+**"No"** → Do not write any snooze file. Proceed to Section 2. (Check runs again next session.)
+
+## 1. Session Load — Fast Path
+
+Keep session start cheap. The minimum work that runs on every load is:
+
+1. Section 0 — skill version check (cached 60 min, single network call at most)
+2. `which e2ectl` (no network)
+3. Read saved profile from `~/.e2e/config.json` (no network)
+
+That's it. Trust saved alias, project ID, and location silently — see `references/access.md` Step 7a.
+
+**Do not, on every load:**
+- Run `e2ectl --version` or `npm view ...` to compare CLI versions (see `access.md` Step 2b — reactive only)
+- Re-run `project list` to validate the saved default project ID (saved IDs may be IAM-shared and won't appear there)
+- Re-prompt for profile, project, or location when valid context is already saved
+- List nodes / volumes / VPCs / etc. as a "warmup"
+
+The user wants to start working, not watch the skill audit itself. Prompts are reserved for: missing context, real API errors, and explicit user requests.
+
+## 2. Resolve CLI
 
 See `references/access.md` for the full flow (Node.js check → CLI install → Global vs Project).
 
@@ -119,12 +184,33 @@ Always apply these unless the user says otherwise:
 - Node details: id, name, status, plan, public IP, private IP, created time
 - After any action: show what happened + next useful step
 - Errors: plain language — what broke, why, how to fix it
+- Overview / "what can you do" replies: respond with the same simple hello message as Section 8a (e.g. "Hey! I'm connected to your E2E Cloud MyAccount. What would you like to do?") — no capability lists, no service breakdowns, no bullets
 
 ## 7. UX Rules
 
 - One-line summary at the start of each step
 - One question at a time — use `AskUserQuestion` with buttons, never plain text
 - If the user says "deploy my server", "run something on the node", or "check what's running" → SSH-into-node workflow
+- If the user mentions ALB, NLB, or load balancer → create/use the LB workflow from `references/load-balancer.md`
+- When creating any resource (node, volume, VPC, load balancer, DBaaS, etc.), always announce: "Creating <resource-type> using <alias>" before executing the command
+
+### 8a. Skill Ready Message
+
+After Sections 0 and 2 complete with no prior session state and no user intent already stated, greet the user with a simple friendly message:
+
+> Hey! I'm connected to your E2E cloud. What would you like to do?
+
+If a default config exists (profile, project, location resolved in Section 3), mention it briefly:
+
+> Using profile **<alias>**, project **<project-name>**, location **<location>**.
+
+If no config is set, say:
+
+> No default config found. Let's set one up first.
+
+Then stop and wait for the user to state intent. Do **not** follow the greeting with an `AskUserQuestion` action menu — the user prefers to type their request directly.
+
+If the user already stated intent in their opening message (e.g. "create a node"), skip the greeting and proceed directly with their request.
 
 ## References
 

@@ -39,6 +39,32 @@ If not found, ask the user via the `AskUserQuestion` tool (button-style — neve
 
 Run the matching `npm` command. If project-local, use `npx e2ectl` for all later commands.
 
+### 2b. CLI freshness — reactive, not proactive
+
+Do **not** check the CLI version on every session load. Only check when there is a real signal:
+
+- A command fails with `unknown flag` / `unknown command` / `unrecognized argument`.
+- The user explicitly asks ("update e2ectl", "am I on the latest CLI?").
+- This is the first install in this session (Step 2a just ran `npm install`).
+
+When triggered:
+
+```bash
+e2ectl --version
+npm view @e2enetworks-oss/e2ectl version
+```
+
+If either command fails (no network, npm outage), **fail open** — proceed silently with the installed version.
+
+If `installed < latest`, ask once via `AskUserQuestion`:
+
+- question: `Your e2ectl CLI is v<installed>; the latest is v<latest>. Update now?`
+- options: `Yes, update` / `No, continue with current version`
+
+On Yes, re-run the same install command the user originally chose (`npm install -g @e2enetworks-oss/e2ectl@latest` for Global, `npm i @e2enetworks-oss/e2ectl@latest` for Project). On No, proceed with what's installed.
+
+Never write a per-load CLI version cache or run `npm view` as part of normal session start.
+
 ## Step 3 — Resolve Config
 
 Start with:
