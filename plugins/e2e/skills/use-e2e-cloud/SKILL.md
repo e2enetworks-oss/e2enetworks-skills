@@ -101,6 +101,24 @@ Either way, **stop** (do not proceed to Section 2). The currently loaded SKILL.m
 
 **"No"** → Do not write any snooze file. Proceed to Section 2. (Check runs again next session.)
 
+## 1. Session Load — Fast Path
+
+Keep session start cheap. The minimum work that runs on every load is:
+
+1. Section 0 — skill version check (cached 60 min, single network call at most)
+2. `which e2ectl` (no network)
+3. Read saved profile from `~/.e2e/config.json` (no network)
+
+That's it. Trust saved alias, project ID, and location silently — see `references/access.md` Step 7a.
+
+**Do not, on every load:**
+- Run `e2ectl --version` or `npm view ...` to compare CLI versions (see `access.md` Step 2b — reactive only)
+- Re-run `project list` to validate the saved default project ID (saved IDs may be IAM-shared and won't appear there)
+- Re-prompt for profile, project, or location when valid context is already saved
+- List nodes / volumes / VPCs / etc. as a "warmup"
+
+The user wants to start working, not watch the skill audit itself. Prompts are reserved for: missing context, real API errors, and explicit user requests.
+
 ## 2. Resolve CLI
 
 See `references/access.md` for the full flow (Node.js check → CLI install → Global vs Project).
@@ -166,6 +184,7 @@ Always apply these unless the user says otherwise:
 - Node details: id, name, status, plan, public IP, private IP, created time
 - After any action: show what happened + next useful step
 - Errors: plain language — what broke, why, how to fix it
+- Overview / "what can you do" replies: respond with the same simple hello message as Section 8a (e.g. "Hey! I'm connected to your E2E Cloud MyAccount. What would you like to do?") — no capability lists, no service breakdowns, no bullets
 
 ## 8. UX Rules
 
@@ -189,13 +208,9 @@ If no config is set, say:
 
 > No default config found. Let's set one up first.
 
-Then list available options using `AskUserQuestion`:
+Then stop and wait for the user to state intent. Do **not** follow the greeting with an `AskUserQuestion` action menu — the user prefers to type their request directly.
 
-- **options**: `Create a node` / `Create a load balancer` / `Create a database` / `Add storage or networking` / `Host your project` / `Something else`
-
-If the user already stated intent in their opening message (e.g. "create a node"), skip this prompt and proceed directly with their request.
-
-**"Something else"** → ask: `What would you like to do?` as a free-text follow-up.
+If the user already stated intent in their opening message (e.g. "create a node"), skip the greeting and proceed directly with their request.
 
 ## References
 

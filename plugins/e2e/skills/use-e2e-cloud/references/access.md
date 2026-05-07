@@ -39,28 +39,31 @@ If not found, ask the user via `AskUserQuestion` (button-style — never plain t
 
 Run the matching `npm` command. If project-local, use `npx e2ectl` for all later commands.
 
-### 2b. Ensure the installed CLI is up to date
+### 2b. CLI freshness — reactive, not proactive
 
-If `e2ectl` was already installed, verify it is current. Cache the result for 24 hours so this isn't a per-session network call.
+Do **not** check the CLI version on every session load. Only check when there is a real signal:
 
-1. Read the cache `~/.e2e/.cli-version-check.json` (`{ "checked_at": "<iso8601>", "result": "up-to-date|upgrade-available", "installed": "<x.y.z>", "latest": "<x.y.z>" }`). If `checked_at` is within **24 hours**, trust `result` and skip the rest of 2b.
+- A command fails with `unknown flag` / `unknown command` / `unrecognized argument`.
+- The user explicitly asks ("update e2ectl", "am I on the latest CLI?").
+- This is the first install in this session (Step 2a just ran `npm install`).
 
-2. Otherwise compare versions:
-   ```bash
-   e2ectl --version       # or: npx e2ectl --version
-   npm view @e2enetworks-oss/e2ectl version
-   ```
-   If either command fails (no network, npm outage), **fail open** — proceed silently with whatever is installed and don't write the cache.
+When triggered:
 
-3. Compare semver by splitting on `.`:
-   - `installed >= latest` → write cache with `result: "up-to-date"`, TTL 24h, proceed silently.
-   - `installed < latest` → ask via `AskUserQuestion`:
-     - question: `Your e2ectl CLI is **v<installed>**; the latest is **v<latest>**. Update now? Some skill features may depend on newer flags.`
-     - options: `Yes, update` / `No, continue with current version`
-   - On `Yes`: re-run the same install command the user originally chose (`npm install -g @e2enetworks-oss/e2ectl@latest` for Global, `npm i @e2enetworks-oss/e2ectl@latest` for Project). After install, write cache with `result: "up-to-date"`.
-   - On `No`: write cache with `result: "upgrade-available"` and TTL 24h, then proceed. The user keeps working but is on notice.
+```bash
+e2ectl --version
+npm view @e2enetworks-oss/e2ectl version
+```
 
-4. If a later command fails with an "unknown flag" / "unknown command" / "unrecognized argument" error and the cache shows `upgrade-available`, surface in plain language: "This command needs a newer e2ectl. Run the update prompt? It usually takes ~10 seconds." Then offer the same Yes/No.
+If either command fails (no network, npm outage), **fail open** — proceed silently with the installed version.
+
+If `installed < latest`, ask once via `AskUserQuestion`:
+
+- question: `Your e2ectl CLI is v<installed>; the latest is v<latest>. Update now?`
+- options: `Yes, update` / `No, continue with current version`
+
+On Yes, re-run the same install command the user originally chose (`npm install -g @e2enetworks-oss/e2ectl@latest` for Global, `npm i @e2enetworks-oss/e2ectl@latest` for Project). On No, proceed with what's installed.
+
+Never write a per-load CLI version cache or run `npm view` as part of normal session start.
 
 ## Step 3 — Resolve Config
 
