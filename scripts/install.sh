@@ -26,7 +26,7 @@ case "$target" in
     sed -n '3,13p' "$0"
     exit 0
     ;;
-  *) echo "bad target: $target (use codex|claude|cursor|opencode|amp|all)" >&2; exit 1 ;;
+  *) echo "bad target: $target (use codex | claude | claude-code | cursor | opencode | open-code | amp | all)" >&2; exit 1 ;;
 esac
 
 # Resolve skill source: local checkout if available, otherwise clone.
@@ -45,6 +45,10 @@ install_dir() {
   rm -rf "$1"
   mkdir -p "$(dirname "$1")"
   cp -R "$src" "$1"
+  # Write the root VERSION file so the agent can detect stale installs.
+  if [[ -f "$script_dir/../VERSION" ]]; then
+    cp "$script_dir/../VERSION" "$1/VERSION"
+  fi
   echo "Installed: $1"
 }
 

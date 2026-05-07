@@ -1,6 +1,6 @@
 ---
 name: use-e2e-cloud
-description: Manage E2E Networks cloud platform resources — nodes, networking, and storage — using the official e2ectl CLI.
+description: Manage E2E Networks cloud platform resources — nodes, load balancers, databases, networking, and storage — using the official e2ectl CLI.
 ---
 
 # use-e2e-cloud
@@ -22,22 +22,28 @@ description: Manage E2E Networks cloud platform resources — nodes, networking,
 - `Bash(ls *)` — inspect local paths
 - `Bash(which *)` — detect installed CLI
 - `Bash(go *)` — build Go binaries locally before upload
-- `WebFetch(https://docs.e2enetworks.com/*)` — fetch E2E docs when reference files don't cover a specific question
 
 Use this skill when the user wants E2E Networks infrastructure work.
 
-## 0. Session Resume Detection
+## 0. Version Check
 
-After config resolves, check `~/.e2e/use-e2e-state.json`. If it exists and is under 24h old, offer to resume:
+**Run once per session, before anything else.**
 
-- question: `You have an unfinished flow. Resume it?`
-- options: `Resume — [next pending step]` / `Start fresh`
+### 0a. Read local version
 
-If no state file, AND this is the first message of the session, AND the user's message explicitly contains "create", "provision", or "deploy": run `node list`, find any recently-created `Running` node with no SSH key attached, and ask if they want to continue its setup. Do not run this check for any other intent.
+Run:
+```bash
+cat ~/.claude/skills/use-e2e-cloud/VERSION 2>/dev/null \
+  || cat ~/.codex/skills/use-e2e-cloud/VERSION 2>/dev/null \
+  || cat ~/.cursor/skills/use-e2e-cloud/VERSION 2>/dev/null \
+  || cat ~/.config/opencode/skills/use-e2e-cloud/VERSION 2>/dev/null
+```
 
-**Write state at each major step** (node_created → ssh_key_attached → vpc_attached → volume_attached → app_deployed). Delete on completion, cancellation, or after 24h. State file: `~/.e2e/use-e2e-state.json`.
+Capture output as `LOCAL_VERSION`. If the file is missing or the command fails, treat `LOCAL_VERSION` as `"0.0.0"`.
 
-State file schema (always include `schema_version`):
+### 0b. Check throttle cache
+
+Read `~/.e2e/.version-check-cache.json`:
 ```json
 { "checked_at": "<iso8601>", "result": "up-to-date|upgrade-available", "remote_version": "<x.y.z>" }
 ```
@@ -119,17 +125,17 @@ See `references/access.md` for the full flow (Node.js check → CLI install → 
 
 **Permission rules — strictly required:**
 - Each Bash call must start with a single command token — no `&&` or `;` chains
-- Poll node status by running `sleep` and `node get` as separate Bash calls, never chained
+- Poll node status by running `sleep` and `node get` as separate Bash calls, never chained. Status values are case-insensitive — always use `grep -i` when matching status strings.
 - `&&` inside an `ssh` remote command string is fine — only the outer `Bash` tool call must not chain
 - Only `node delete` and `reserved-ip delete` need explicit user confirmation
 
-## 2. Resolve Config
+## 3. Resolve Config
 
 See `references/access.md` for the full flow (config list → profile select → project select → location).
 
 If any command returns `Profile "<alias>" was not found`: tell the user in plain language — "A profile is your saved E2E credentials. It looks like it was removed or never saved. Let's set one up." — then re-run the config flow.
 
-## 3. Capability Index
+## 4. Capability Index
 
 | Want to... | Reference |
 |---|---|
@@ -137,36 +143,29 @@ If any command returns `Profile "<alias>" was not found`: tell the user in plain
 | List or create projects | `references/project.md` |
 | Provision, upgrade, or delete nodes | `references/nodes.md` |
 | Power on/off, save image, attach resources | `references/nodes.md` |
+| List, rename, or delete saved images | `references/image.md` |
+| Create a node from a saved image | `references/image.md` |
 | Manage reserved IPs | `references/reserved-ip.md` |
 | Create or attach volumes | `references/volume.md` |
 | Create or attach VPCs | `references/vpc.md` |
 | Create or attach security groups | `references/security-group.md` |
+| Create or manage load balancers (ALB/NLB) | `references/load-balancer.md` |
+| Create or manage DBaaS clusters (MariaDB/MySQL/PostgreSQL) | `references/dbaas.md` |
 | Deploy a frontend or backend app | `references/deploy.md` |
 | SSH into a node, DNS, HTTPS | `references/deploy.md` |
-| Docs for any resource / pricing / limits | `references/docs-index.md` |
+| Estimate costs for any service | `references/cost-estimation.md` |
 
-## 4. Critical Rules
 
-These rules are not obvious from the CLI — always apply them.
+## 5. Critical Rules
 
-**Nodes:**
-- `--plan` must be the exact full string from `node catalog plans` output (e.g. `"c2.large (8 vCPUs / 16 GB RAM / 100 GB SSD)"`). Using the SKU shortname causes a 412 error.
-- E1/E1WC plans require `--disk <gb>`. All other plans reject it.
-- Do not attempt any attach action while a node is `Creating`. Poll `node get` until `Running`.
-- After any power or state-changing action, always follow up with `node get` — never show only the action receipt.
-- `node action public-ip detach` removes public reachability — confirm with the user first.
+Critical rules live in each service's reference file — see the **Rules**, **Error Recovery**, and **Polling** sections inside each.
 
-**VPC:**
-- `node action vpc attach` takes the **Network ID** (from `vpc list`), not the VPC ID from `vpc create`.
-- VPC must be `Active` before attaching. Poll `vpc list` after create.
+**Hard rules:**
+- **Bulk delete order:** nodes → volumes → VPCs → security groups → SSH keys → reserved IPs
+- **Case-insensitive status polling:** all status checks (Running, Active, Attached, etc.) must use case-insensitive matching — always `grep -i`, never bare `grep`
+- **Unsupported actions:** always try your best to fulfill the request using the available CLI commands and reference files. Only if the action is genuinely not possible through this skill — after exhausting all options — tell the user: "This skill currently doesn't support that. You can do it directly in E2E Cloud MyAccount at https://myaccount.e2enetworks.com"
 
-**Volumes:**
-- Always run `volume plans` before `volume create` — minimum sizes vary by location.
-- Never delete an `Attached` volume. Detach first.
-
-**Bulk delete order:** nodes → volumes → VPCs → security groups → SSH keys → reserved IPs.
-
-## 5. Defaults
+## 6. Defaults
 
 Always apply these unless the user says otherwise:
 
@@ -177,16 +176,17 @@ Always apply these unless the user says otherwise:
 | Public key path | `~/.ssh/id_ed25519.pub` |
 | SSH key label | `node-access` |
 
-## 6. Output Rules
+## 7. Output Rules
 
 - Natural language summaries — never raw JSON or raw CLI output
+- Never show CLI commands in responses to the user — no `e2ectl ...` hints, no "run this next" command snippets, no reference file paths
 - Node lists: id, name, status, public IP
 - Node details: id, name, status, plan, public IP, private IP, created time
 - After any action: show what happened + next useful step
 - Errors: plain language — what broke, why, how to fix it
 - Overview / "what can you do" replies: respond with the same simple hello message as Section 8a (e.g. "Hey! I'm connected to your E2E Cloud MyAccount. What would you like to do?") — no capability lists, no service breakdowns, no bullets
 
-## 7. UX Rules
+## 8. UX Rules
 
 - One-line summary at the start of each step
 - One question at a time — use `AskUserQuestion` with buttons, never plain text
@@ -216,10 +216,13 @@ If the user already stated intent in their opening message (e.g. "create a node"
 
 - setup, config, and onboarding: `references/access.md`
 - nodes and node actions: `references/nodes.md`
+- saved images (list, rename, delete, create node from image): `references/image.md`
 - projects: `references/project.md`
 - reserved IPs: `references/reserved-ip.md`
 - block storage volumes: `references/volume.md`
 - VPC networks: `references/vpc.md`
 - security groups: `references/security-group.md`
+- load balancers (ALB/NLB): `references/load-balancer.md`
+- DBaaS clusters (MariaDB/MySQL/PostgreSQL): `references/dbaas.md`
 - app deployment, DNS, HTTPS, services: `references/deploy.md`
-- E2E docs index (all resource URLs): `references/docs-index.md`
+- cost estimation and pricing: `references/cost-estimation.md`

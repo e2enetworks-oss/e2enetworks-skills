@@ -23,13 +23,13 @@ Do not proceed until `npm` is available.
 
 ## Step 2 — Resolve CLI
 
-Check if `e2ectl` is already installed:
+### 2a. Check whether `e2ectl` is installed
 
 ```bash
 which e2ectl
 ```
 
-If not found, ask the user via the `AskUserQuestion` tool (button-style — never plain text):
+If not found, ask the user via `AskUserQuestion` (button-style — never plain text):
 
 - question: `e2ectl CLI is not installed. How should I install it?`
 - header: `Install e2ectl`
@@ -141,29 +141,40 @@ After the profile is resolved, list all projects for the account:
 CLI project list --alias <alias>
 ```
 
-Print every project as a plain text summary so the user can see all of them:
+**Important — what this list does and doesn't include:**
+
+`project list` only returns projects **owned by this account**. If the user has been added to another account's project via **IAM** (Identity & Access Management), that project **will not appear** here even though they can use it. To work in an IAM-shared project, the user must enter its numeric project ID manually — they can get it from the project owner or from the project page in E2E MyAccount.
+
+Always communicate this to the user before asking them to pick a project. Print the list with a short note, like:
 
 ```
-Your projects:
+Your projects (owned by this account):
   48660  normaDbaaS            ← previously used CLI default
   48103  default-project-42526
   51234  my-other-project
   ...
+
+If you've been added to another account's project via IAM, it won't appear above —
+choose "Enter a project ID manually" below and paste the ID from the project owner
+or from E2E MyAccount.
 ```
 
 Mark the previously-used CLI default with `← previously used CLI default` if one exists.
 
 Do NOT use one button per project — `AskUserQuestion` supports a maximum of 4 options and most accounts have more projects than that. Use this fixed layout instead:
 
-- question: `Which project ID should be the default? (see the list above)`
+- question: `Which project should be the default? (see the list above)`
 - options:
   - `<id> — <name> (Recommended)` — the previously-used CLI default, if one exists
   - `<id> — <name>` — the account default project, if different from the above
-  - `Enter a different ID` — for any other project shown in the list above
+  - `Pick another from the list above` — for any other project owned by this account
+  - `Enter a project ID manually` — for an IAM-shared project not in the list, or any other ID the user has
 
-If the user selects `Enter a different ID`, ask as a follow-up free-text prompt:
+If the user selects `Pick another from the list above` or `Enter a project ID manually`, ask as a follow-up free-text prompt:
 
-- question: `Enter the project ID from the list above:`
+- question: `Enter the project ID:` (free-text)
+
+After the user enters an ID, validate it by running a lightweight call against that project (e.g. `node list --project-id <id> --alias <alias>`). If it returns an error like "project not found" or "permission denied", tell the user in plain language what happened and offer to either retry with a different ID or go back to the list.
 
 ## Step 6 — Select Location
 
@@ -186,6 +197,21 @@ CLI config set-context \
 ```
 
 Confirm to the user: profile alias, project id, and location are now set.
+
+## Step 7a — Session Load Behavior (saved context already exists)
+
+When the skill loads and the profile already has a saved default project ID and location, **trust the saved values** and proceed silently. Do not run `project list` just to validate the saved project ID against the listing.
+
+**Critical — do not warn about a "missing" project ID:**
+
+If the saved default project ID does not appear in `project list` output, this does **not** mean the project was deleted. It is most likely an IAM-shared project (owned by another account, accessible via IAM) — `project list` only shows projects owned by the current account, so IAM-shared projects are never in that listing.
+
+Therefore:
+- Do NOT print messages like "your saved default project ID X doesn't appear in your current project list — it may have been deleted."
+- Do NOT prompt the user to re-select a project on session load.
+- Do NOT re-run Step 5 unless the user explicitly asks to switch projects, or a real API call returns "project not found" / "permission denied" for that ID.
+
+If a later command actually fails for that project ID (e.g. real 404 / 403 from the API), only then tell the user in plain language and offer to re-select. The trigger is a real error, never an absence from `project list`.
 
 ## Step 8 — Error Handling
 
@@ -238,6 +264,3 @@ CLI config remove --alias <alias>
 - use `--json` only when parsing output programmatically
 - after setup is complete, summarize: alias, project id, location — one line each
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/GettingStarted/iam
