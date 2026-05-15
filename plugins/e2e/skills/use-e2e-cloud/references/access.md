@@ -84,10 +84,21 @@ If profiles already exist, ask the user via `AskUserQuestion` (button-style):
 
 If no usable config exists, ask via `AskUserQuestion` (button-style):
 
-- question: `No config found. To get your credentials, go to E2E MyAccount → API & IAM: https://myaccount.e2enetworks.com/services/apiiam — create an API token and download the config JSON. Then choose how to import it:`
+- question: `No config found. To get your credentials, go to E2E MyAccount → API & IAM: https://myaccount.e2enetworks.com/services/apiiam — use an existing token with Read and Write permissions or create a new one (ensure both Read and Write are enabled), then click "Download Tokens" to download the config JSON. Then choose how to import it:`
 - options:
   - `Use a config file on this machine` — ask for the file path, then import
-  - `Upload a config file` — ask the user to provide the file, then import
+
+### Multiple tokens in the downloaded file
+
+The downloaded config JSON may contain more than one API token (the Download Tokens button exports all tokens on the account). Before running the import command, read the file and inspect how many token / credential entries it contains.
+
+- If the file has **exactly one** token → use it directly and proceed to the import command.
+- If the file has **more than one** token → ask the user via `AskUserQuestion` (button-style) which one to use:
+  - question: `The downloaded file has multiple tokens. Which one should I import?`
+  - options: one button per token, labelled by the token's name / alias (never show the secret value — mask key and secret in the display)
+  - if there are more than 4 tokens, show the first 3 plus a `Pick another from the list` option and follow up with a free-text prompt asking for the token name
+
+Import only the selected token. If a token name is needed for the alias, derive the alias from that selected token's name.
 
 Import command — always use `--file`, never pass the path as a bare argument:
 
