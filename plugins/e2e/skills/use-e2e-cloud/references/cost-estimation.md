@@ -96,6 +96,7 @@ When a user wants a cost estimate:
 2. **Run the relevant plans command** for each service
 3. **Summarize** the total estimated monthly cost (hourly rate × 730 hours) or committed cost
 4. **Show a breakdown** — one line per resource with plan name and monthly estimate
+5. **Before writing the total, list every resource named in the architecture and confirm a plans command was run for each.** If any was skipped, run it now. An estimate missing a priced component is wrong, not "approximate".
 
 ### Quick Estimate (no plans commands yet)
 

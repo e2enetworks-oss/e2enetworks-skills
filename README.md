@@ -26,7 +26,7 @@ Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run th
 
 ## Quickstart
 
-1. Create an API token in [E2E MyAccount > API & IAM](https://myaccount.e2enetworks.com/services/apiiam) and download the config JSON.
+1. Go to [E2E MyAccount > API](https://myaccount.e2enetworks.com/services/apiiam). If you already have a token with **Read and Write** permissions, use it — otherwise create a new token (ensure both Read and Write permissions are enabled). Then click the **Download Tokens** button to download all the tokens.
 2. In your coding agent, invoke the skill — for example in Claude Code:
 
    ```
@@ -38,7 +38,7 @@ Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run th
 3. The skill will:
    - check whether `e2ectl` is already installed
    - if `e2ectl` is missing, ask whether to install it globally or in this project
-   - import your config JSON (point it at `~/Downloads/config.json` when asked)
+   - import your config JSON (give it the path where you saved the downloaded file; if it contains multiple tokens, pick which one to import)
    - prompt for a default project id and location if they aren't already saved
    - confirm the saved profile is ready
 

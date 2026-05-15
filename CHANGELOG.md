@@ -2,6 +2,17 @@
 
 All notable changes to `e2enetworks-skills` are documented here.
 
+## [0.2.1] - 2026-05-15
+
+### Added
+- Multi-token handling in the access flow — when the downloaded config JSON contains more than one token, the skill now asks which one to import (token names only, secrets masked)
+- `Versioning` section in `CONTRIBUTING.md` documenting both `VERSION` files, when to bump MAJOR/MINOR/PATCH, and the release checklist
+- `VERSION` file at the repo root as the installer's source of truth
+
+### Changed
+- README quickstart clarifies the "Download Tokens" flow and the Read + Write permission requirement
+- `access.md` "no config" prompt updated to match the new token download flow
+
 ## [0.2.0] - 2026-05-07
 
 ### Added
