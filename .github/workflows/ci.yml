@@ -12,3 +12,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run regression tests
         run: bash tests/regression.sh
+
+  version-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify VERSION files match
+        run: |
+          ROOT_VERSION=$(cat VERSION | tr -d '[:space:]')
+          SKILL_VERSION=$(cat plugins/e2e/skills/use-e2e-cloud/VERSION | tr -d '[:space:]')
+          echo "Root VERSION:  $ROOT_VERSION"
+          echo "Skill VERSION: $SKILL_VERSION"
+          if [ "$ROOT_VERSION" != "$SKILL_VERSION" ]; then
+            echo "::error::VERSION files are out of sync. Both must match per CONTRIBUTING.md → Versioning."
+            exit 1
+          fi
+      - name: Verify CHANGELOG has matching entry
+        run: |
+          ROOT_VERSION=$(cat VERSION | tr -d '[:space:]')
+          if ! grep -q "^## \[$ROOT_VERSION\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md is missing an entry for [$ROOT_VERSION]. Add one per CONTRIBUTING.md release checklist."
+            exit 1
+          fi
