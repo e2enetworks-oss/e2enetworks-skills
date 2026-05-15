@@ -87,6 +87,7 @@ If no usable config exists, ask via `AskUserQuestion` (button-style):
 - question: `No config found. To get your credentials, go to E2E MyAccount → API & IAM: https://myaccount.e2enetworks.com/services/apiiam — use an existing token with Read and Write permissions or create a new one (ensure both Read and Write are enabled), then click "Download Tokens" to download the config JSON. Then choose how to import it:`
 - options:
   - `Use a config file on this machine` — ask for the file path, then import
+  - `Paste config JSON inline` — ask the user to paste the JSON contents, write them to a temp file (e.g. `~/.e2e/imported-config.json`), then import using that path
 
 ### Multiple tokens in the downloaded file
 
@@ -96,7 +97,7 @@ The downloaded config JSON may contain more than one API token (the Download Tok
 - If the file has **more than one** token → ask the user via `AskUserQuestion` (button-style) which one to use:
   - question: `The downloaded file has multiple tokens. Which one should I import?`
   - options: one button per token, labelled by the token's name / alias (never show the secret value — mask key and secret in the display)
-  - if there are more than 4 tokens, show the first 3 plus a `Pick another from the list` option and follow up with a free-text prompt asking for the token name
+  - if there are more than 4 tokens, show the first 3 plus a `Pick another from the list` option; if the user picks that option, follow up with a separate plain-text turn asking them to type the token name (AskUserQuestion is button-only and cannot accept free-text input directly)
 
 Import only the selected token. If a token name is needed for the alias, derive the alias from that selected token's name.
 
