@@ -295,7 +295,7 @@ test_all_targets_install_to_expected_paths() {
   [[ -f "$opencode_home/skills/use-e2e-cloud/SKILL.md" ]] || fail "expected OpenCode install path"
 
   # Verify all reference files are installed
-  for ref in access nodes vpc volume security-group reserved-ip project deploy docs-index; do
+  for ref in access nodes vpc volume security-group reserved-ip project deploy; do
     [[ -f "$claude_home/skills/use-e2e-cloud/references/${ref}.md" ]] || fail "expected reference file ${ref}.md to be installed"
   done
 

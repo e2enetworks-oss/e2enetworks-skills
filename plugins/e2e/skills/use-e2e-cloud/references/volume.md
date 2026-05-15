@@ -101,7 +101,7 @@ Suggest `/data` if no mount path is provided.
 Do not guess the block device path — always run `lsblk` first.
 Do not format a volume unless it is new, empty, and the user has explicitly allowed it.
 
-## Delete Guard — Attached Volumes
+## Rules
 
 Before deleting a volume, check its status with `volume list` or `volume get`.
 
@@ -121,6 +121,3 @@ If status is `Attached` (or delete returns a 412 "detach first" error):
 - after attach, say which node and volume are now connected and suggest mount steps
 - do not show raw JSON unless asked
 
-## Docs
-
-- Official documentation: https://docs.e2enetworks.com/docs/myaccount/storage/block_storage
