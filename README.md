@@ -38,7 +38,7 @@ Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run th
 3. The skill will:
    - check whether `e2ectl` is already installed
    - if `e2ectl` is missing, ask whether to install it globally or in this project
-   - import your config JSON (point it at `~/Downloads/<file>.json` when asked; if it contains multiple tokens, pick which one to import)
+   - import your config JSON (give it the path where you saved the downloaded file; if it contains multiple tokens, pick which one to import)
    - prompt for a default project id and location if they aren't already saved
    - confirm the saved profile is ready
 

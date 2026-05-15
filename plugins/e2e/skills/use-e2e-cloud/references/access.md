@@ -54,7 +54,9 @@ e2ectl --version
 npm view @e2enetworks-oss/e2ectl version
 ```
 
-If either command fails (no network, npm outage), **fail open** — proceed silently with the installed version.
+From each output, extract the first substring matching `^[0-9]+\.[0-9]+\.[0-9]+$`. If either command exits non-zero, returns empty output, or produces no string matching that pattern (no network, npm outage, deprecation warning, etc.), **fail open** — proceed silently with the installed version.
+
+Compare `installed` and `latest` by splitting on `.` and comparing major, minor, patch as integers in order (do not use string comparison — `"0.10.0"` is greater than `"0.9.0"` numerically but less lexicographically).
 
 If `installed < latest`, ask once via `AskUserQuestion`:
 
