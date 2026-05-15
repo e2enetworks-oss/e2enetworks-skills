@@ -76,6 +76,8 @@ The skill's session-start upgrade check (see `SKILL.md` Section 0) compares the 
 3. Commit with a message like `Release v<x.y.z>`.
 4. Open a PR to `main`; once merged, the new `VERSION` on `main` triggers the upgrade prompt for existing users on their next session.
 
+The `version-sync` job in `.github/workflows/ci.yml` enforces steps 1 and 2 on every PR — it fails if the two `VERSION` files drift apart or if `CHANGELOG.md` is missing an entry matching the current version.
+
 ### CLI version (separate)
 
 The `@e2enetworks-oss/e2ectl` npm CLI is versioned independently and published from its own repo. The skill checks CLI freshness reactively — see `references/access.md` Step 2b — and never pins a CLI version.

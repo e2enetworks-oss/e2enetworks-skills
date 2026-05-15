@@ -2,6 +2,11 @@
 
 All notable changes to `e2enetworks-skills` are documented here.
 
+## [0.2.2] - 2026-05-15
+
+### Changed
+- Mid-session "what can you do" replies now summarize the skill's actual E2E capabilities (nodes, images, reserved IPs, volumes, VPCs, security groups, load balancers, DBaaS, app deployment, cost estimation, profile/project/location setup) instead of repeating the initial greeting. Section 8a first-load greeting is unchanged.
+
 ## [0.2.1] - 2026-05-15
 
 ### Added
