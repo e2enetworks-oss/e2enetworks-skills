@@ -184,7 +184,7 @@ Always apply these unless the user says otherwise:
 - Node details: id, name, status, plan, public IP, private IP, created time
 - After any action: show what happened + next useful step
 - Errors: plain language — what broke, why, how to fix it
-- Overview / "what can you do" replies: respond with the same simple hello message as Section 8a (e.g. "Hey! I'm connected to your E2E Cloud MyAccount. What would you like to do?") — no capability lists, no service breakdowns, no bullets
+- "What can you do" replies mid-session: summarize only what this skill actually supports — E2E Networks infrastructure via `e2ectl` (nodes, images, reserved IPs, volumes, VPCs, security groups, load balancers, DBaaS, app deployment, cost estimation, profile/project/location setup). Do not list capabilities from other skills, MCP servers, or general assistant abilities.
 
 ## 8. UX Rules
 
