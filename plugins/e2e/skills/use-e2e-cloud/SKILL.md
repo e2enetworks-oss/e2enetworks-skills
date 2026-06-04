@@ -154,6 +154,7 @@ If any command returns `Profile "<alias>" was not found`: tell the user in plain
 | Deploy a frontend or backend app | `references/deploy.md` |
 | SSH into a node, DNS, HTTPS | `references/deploy.md` |
 | Estimate costs for any service | `references/cost-estimation.md` |
+| Raise, track, reply to, or close support tickets | `references/support-ticket.md` |
 
 
 ## 5. Critical Rules
@@ -164,6 +165,7 @@ Critical rules live in each service's reference file — see the **Rules**, **Er
 - **Bulk delete order:** nodes → volumes → VPCs → security groups → SSH keys → reserved IPs
 - **Case-insensitive status polling:** all status checks (Running, Active, Attached, etc.) must use case-insensitive matching — always `grep -i`, never bare `grep`
 - **Unsupported actions:** always try your best to fulfill the request using the available CLI commands and reference files. Only if the action is genuinely not possible through this skill — after exhausting all options — tell the user: "This skill currently doesn't support that. You can do it directly in E2E Cloud MyAccount at https://myaccount.e2enetworks.com"
+- **Offer a ticket on failure:** when an operation fails and recovery is exhausted (a stuck or errored resource, a server-side API error the user can't resolve), report what broke in plain language, then offer to open a support ticket pre-filled with the failure details — see `references/support-ticket.md` → "Offer a Ticket After a Failure". Offer once; if the user declines, don't re-prompt.
 
 ## 6. Defaults
 
@@ -184,7 +186,7 @@ Always apply these unless the user says otherwise:
 - Node details: id, name, status, plan, public IP, private IP, created time
 - After any action: show what happened + next useful step
 - Errors: plain language — what broke, why, how to fix it
-- "What can you do" replies mid-session: summarize only what this skill actually supports — E2E Networks infrastructure via `e2ectl` (nodes, images, reserved IPs, volumes, VPCs, security groups, load balancers, DBaaS, app deployment, cost estimation, profile/project/location setup). Do not list capabilities from other skills, MCP servers, or general assistant abilities.
+- "What can you do" replies mid-session: summarize only what this skill actually supports — E2E Networks infrastructure via `e2ectl` (nodes, images, reserved IPs, volumes, VPCs, security groups, load balancers, DBaaS, app deployment, cost estimation, support tickets, profile/project/location setup). Do not list capabilities from other skills, MCP servers, or general assistant abilities.
 
 ## 8. UX Rules
 
@@ -226,3 +228,4 @@ If the user already stated intent in their opening message (e.g. "create a node"
 - DBaaS clusters (MariaDB/MySQL/PostgreSQL): `references/dbaas.md`
 - app deployment, DNS, HTTPS, services: `references/deploy.md`
 - cost estimation and pricing: `references/cost-estimation.md`
+- support tickets (create, list, reply, close, reopen, timeline): `references/support-ticket.md`

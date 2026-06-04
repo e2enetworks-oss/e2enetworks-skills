@@ -2,6 +2,13 @@
 
 All notable changes to `e2enetworks-skills` are documented here.
 
+## [0.2.3] - 2026-06-04
+
+### Added
+- Support ticket reference (`references/support-ticket.md`): create, list and filter, get, read reply threads, reply with attachments, close, reopen, and review a ticket's timeline — including department discovery, category rules, SOC/Abuse routing, and an interactive "Missing Specs" create flow
+- Support ticket entries in the `SKILL.md` Capability Index and References list, and in the mid-session "what can you do" capability summary
+- "Offer a Ticket After a Failure" flow — when an operation fails and recovery is exhausted, the skill offers to open a support ticket pre-filled with the failure context (action, error, affected resources, project/location, time)
+
 ## [0.2.2] - 2026-05-15
 
 ### Changed
