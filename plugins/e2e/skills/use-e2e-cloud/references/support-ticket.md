@@ -31,8 +31,8 @@ post replies with attachments, close, reopen, and review a ticket's activity tim
 
 ## Allowed Values
 
-- **Create categories:** `Cloud`, `Network`, `Billing`, `Sales`
-- **Filter categories** (`list --category`): `Cloud`, `Network`, `Billing`, `Sales`, `SOC`, `Abuse`
+- **Create categories:** `Cloud`, `Billing`, `Sales`
+- **Filter categories** (`list --category`): `Cloud`, `Billing`, `Sales`, `SOC`, `Abuse`
 - **Priority:** `High`, `Medium`, `Low`
 - **Status** (`list --status`): `New`, `Open`, `On Hold`, `Waiting on Customer`, `Escalated`, `Resolved`, `Closed` — plus presets `open` (Open, On Hold, Waiting on Customer, Escalated) and `resolved` (Resolved, Closed)
 - **Priority filter preset** (`list --priority`): `urgent` (High, Medium)
@@ -43,8 +43,7 @@ post replies with attachments, close, reopen, and review a ticket's activity tim
 | Category | `--component` | `--priority`       | `--resource` |
 | -------- | ------------- | ------------------ | ------------ |
 | Cloud    | Required      | Required           | Allowed      |
-| Billing  | Required      | Required           | Allowed      |
-| Network  | Optional      | Optional           | Allowed      |
+| Billing  | Required      | Required           | Not allowed  |
 | Sales    | Optional      | Optional (ignored) | Not allowed  |
 
 ## Commands
@@ -124,11 +123,12 @@ CLI support-ticket timeline <ticket-id> --month 5 --year 2026 --alias <alias>
 ## Optional Flags
 
 - `--cc <email>` on `create` — repeat for multiple CC addresses.
-- `--resource <id:name[:ip]>` on `create` — Cloud, Billing, and Network tickets; repeat to link multiple resources. Not allowed for Sales.
+- `--resource <id:name[:ip]>` on `create` — Cloud tickets only; repeat to link multiple resources. The CLI rejects `--resource` on Billing and Sales tickets.
 - `--contact-email <email>` and `--contact-type <type>` on `create`, `get`, `get-replies`,
   `reply`, `close`, and `reopen` — when omitted, MyAccount uses the account owner as the
   contact person.
 - `--channel <channel>` on `create` and `reply` — origin/reply channel (defaults to `Web`).
+- `--priority-ticket` on `create` — mark the ticket as a priority (chat) ticket.
 - `--soc-ticket` / `--abuse-ticket` on `get`, `get-replies`, `reply` — route to the SOC or
   abuse table (mutually exclusive).
 
@@ -139,12 +139,12 @@ fields one question at a time with `AskUserQuestion`, then confirm before submit
 
 1. **Department** — run `support-ticket departments` and present the department names as
    options; map the chosen name back to its id. Never ask the user for a raw id.
-2. **Category** — `Cloud`, `Network`, `Billing`, or `Sales`.
+2. **Category** — `Cloud`, `Billing`, or `Sales`.
 3. **Subject** — a short summary (≤ 60 characters).
 4. **Description** — what's happening, since when, and any impact.
-5. **Component** — required for Cloud and Billing and Network; the affected service or area.
+5. **Component** — required for Cloud and Billing; the affected service or area.
 6. **Priority** — required for Cloud and Billing; `High`, `Medium`, or `Low`.
-7. **Resources** (Cloud, Billing, Network — optional) — offer to link affected nodes/resources.
+7. **Resources** (Cloud only — optional) — offer to link affected nodes/resources.
 
 Show a one-line confirmation summary (department, category, subject, priority) before
 running `create`.
@@ -218,15 +218,15 @@ stuck. This is the bridge from a failed action to getting help from E2E support.
 2. Then ask with `AskUserQuestion`: "Want me to open a support ticket for this?" — `Yes` / `No`.
 3. On **Yes**, pre-fill `create` from the failure context you already have — never make the
    user re-type details you can see:
-   - **Category** — `Cloud` for node/volume/VPC/LB/DBaaS failures, `Billing` for billing
-     or quota errors, `Network` for connectivity/reachability, else ask.
+   - **Category** — `Cloud` for node/volume/VPC/LB/DBaaS failures and any
+     connectivity/reachability issue, `Billing` for billing or quota errors, else ask.
    - **Component** — the service that failed (e.g. `Compute`, `Block Storage`, `Load Balancer`).
    - **Subject** — a one-line summary of the failure (≤ 60 chars), e.g. "Node 4567 stuck
      in Provisioning".
    - **Description** — the action attempted, the exact error message, affected resource
      ids/names, the project and location, and the time it occurred.
-   - **Resource** — link the affected resource(s) as `id:name[:ip]` for Cloud, Billing,
-     and Network tickets.
+   - **Resource** — link the affected resource(s) as `id:name[:ip]`. Cloud tickets only;
+     the CLI rejects `--resource` on other categories.
    - **Priority** — suggest `High` for an outage or stuck resource, `Medium` otherwise.
    - **Department** — run `support-ticket departments` and ask the user to pick.
 4. Show the pre-filled subject, category, and priority for confirmation before submitting,
