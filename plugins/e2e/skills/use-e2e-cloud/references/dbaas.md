@@ -60,6 +60,7 @@ Options: `Auto-renew` / `Switch to hourly billing`
 Before running any command, display a summary of all selected options:
 
 > Here's what will be created:
+>
 > - **Engine:** `<engine> <version>`
 > - **Cluster name:** `<name>`
 > - **Plan:** `<plan>`
@@ -162,12 +163,12 @@ For non-default VPCs, add `--subnet-id <subnet-id>`. VPC-attached DBaaS gets a p
 
 ### Networking Options Matrix
 
-| Public IP | VPC | Whitelist | Use case |
-|---|---|---|---|
-| Yes | No | Required | Public access only — whitelist your IPs |
-| Yes | Yes | Required | Public access + private VPC communication |
-| No | Yes | N/A | Private-only — accessible only within VPC |
-| No | No | N/A | Not allowed — DBaaS must have at least one network path |
+| Public IP | VPC | Whitelist | Use case                                                |
+| --------- | --- | --------- | ------------------------------------------------------- |
+| Yes       | No  | Required  | Public access only — whitelist your IPs                 |
+| Yes       | Yes | Required  | Public access + private VPC communication               |
+| No        | Yes | N/A       | Private-only — accessible only within VPC               |
+| No        | No  | N/A       | Not allowed — DBaaS must have at least one network path |
 
 ### VPC Commands
 
@@ -233,12 +234,12 @@ After create, poll `dbaas get` until status is `Running`. Do not attempt network
 
 ## Error Recovery
 
-| Error | Cause | Fix |
-|---|---|---|
-| Plan validation fails | Wrong plan name or mismatch with type/version | Re-run `dbaas plans --type <type> --db-version <version>`, use exact plan name |
-| Committed SKU not found | Wrong SKU ID for given type/version | Re-run `dbaas plans`, use exact SKU ID from output |
-| Network attach fails | DBaaS not Running or wrong vpc-id | Poll `dbaas get` until Running, verify vpc-id from `vpc list` |
-| Whitelist add fails | Invalid IP or DBaaS not Running | Verify IPv4 format, poll until Running |
+| Error                   | Cause                                         | Fix                                                                            |
+| ----------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
+| Plan validation fails   | Wrong plan name or mismatch with type/version | Re-run `dbaas plans --type <type> --db-version <version>`, use exact plan name |
+| Committed SKU not found | Wrong SKU ID for given type/version           | Re-run `dbaas plans`, use exact SKU ID from output                             |
+| Network attach fails    | DBaaS not Running or wrong vpc-id             | Poll `dbaas get` until Running, verify vpc-id from `vpc list`                  |
+| Whitelist add fails     | Invalid IP or DBaaS not Running               | Verify IPv4 format, poll until Running                                         |
 
 ## Output Rules
 
@@ -247,4 +248,3 @@ After create, poll `dbaas get` until status is `Running`. Do not attempt network
 - After create: show endpoint, port, database name, and admin username so the user can connect
 - After any action: confirm with follow-up `dbaas get`
 - Do not show raw JSON unless asked
-

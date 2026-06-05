@@ -140,16 +140,17 @@ CLI security-group delete <sg-id> --force --alias <alias>
 
 The `--rules-file` expects a flat JSON array of rule objects. Each rule has these fields:
 
-| Field | Values |
-|---|---|
-| `rule_type` | `"Inbound"` or `"Outbound"` |
-| `protocol_name` | `"Custom_TCP"`, `"Custom_UDP"`, `"All"`, `"ICMP"` |
-| `port_range` | port number as string (e.g. `"22"`), range (e.g. `"8000-9000"`), or `"All"` |
-| `network` | CIDR string (e.g. `"0.0.0.0/0"`, `"10.0.0.0/8"`) or `"any"` |
-| `description` | human-readable label (optional but recommended) |
+| Field           | Values                                                                      |
+| --------------- | --------------------------------------------------------------------------- |
+| `rule_type`     | `"Inbound"` or `"Outbound"`                                                 |
+| `protocol_name` | `"Custom_TCP"`, `"Custom_UDP"`, `"All"`, `"ICMP"`                           |
+| `port_range`    | port number as string (e.g. `"22"`), range (e.g. `"8000-9000"`), or `"All"` |
+| `network`       | CIDR string (e.g. `"0.0.0.0/0"`, `"10.0.0.0/8"`) or `"any"`                 |
+| `description`   | human-readable label (optional but recommended)                             |
 
 When the user asks to create or update a security group but has no file ready,
 ask them:
+
 - what inbound ports or protocols to allow (e.g. 22/SSH, 80/HTTP, 443/HTTPS)
 - whether to restrict source to a specific IP or allow `"any"`
 - whether any outbound rules are needed (default: allow all outbound)
@@ -225,4 +226,3 @@ CLI security-group create --name <sg-name> --rules-file /tmp/rules.json --alias 
 - after create, show the new security group id and suggest attaching it to a node or using `--security-group` on `lb create`
 - after attach/detach, confirm the node and security group involved
 - do not show raw JSON unless asked
-

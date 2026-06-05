@@ -16,6 +16,7 @@ from nodes independently of the node lifecycle. Use them to keep a stable IP acr
 node replacements or to preserve an IP before deleting a node.
 
 **Bundled vs. unbundled:**
+
 - All node plans **except E1** include a reserved IP bundled at no extra cost. The node's
   public IP is already a reserved IP and does not require a separate `reserved-ip create`.
 - **E1 nodes do not include a bundled reserved IP.** If an E1 node needs a stable public IP,
@@ -75,12 +76,14 @@ CLI reserved-ip delete <ip-address> --force --alias <alias>
 Keep a node's IP before deleting it (two ways):
 
 Option A — reserve then delete:
+
 ```bash
 CLI reserved-ip reserve node <node-id> --alias <alias>
 CLI node delete <node-id> --force --alias <alias>
 ```
 
 Option B — delete with built-in reservation flag:
+
 ```bash
 CLI node delete <node-id> --reserve-public-ip --force --alias <alias>
 ```
@@ -108,4 +111,3 @@ CLI reserved-ip attach node <ip-address> --node-id <new-node-id> --alias <alias>
 - after attach, confirm the node now uses the reserved IP
 - after detach, confirm the IP is now free and can be reused
 - do not show raw JSON unless asked
-

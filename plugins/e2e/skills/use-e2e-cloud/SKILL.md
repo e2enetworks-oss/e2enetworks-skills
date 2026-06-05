@@ -32,6 +32,7 @@ Use this skill when the user wants E2E Networks infrastructure work.
 ### 0a. Read local version
 
 Run:
+
 ```bash
 cat ~/.claude/skills/use-e2e-cloud/VERSION 2>/dev/null \
   || cat ~/.codex/skills/use-e2e-cloud/VERSION 2>/dev/null \
@@ -44,9 +45,15 @@ Capture output as `LOCAL_VERSION`. If the file is missing or the command fails, 
 ### 0b. Check throttle cache
 
 Read `~/.e2e/.version-check-cache.json`:
+
 ```json
-{ "checked_at": "<iso8601>", "result": "up-to-date|upgrade-available", "remote_version": "<x.y.z>" }
+{
+  "checked_at": "<iso8601>",
+  "result": "up-to-date|upgrade-available",
+  "remote_version": "<x.y.z>"
+}
 ```
+
 If it exists, `checked_at` is within **60 minutes** of now, and `result` is `"up-to-date"` → skip the rest of Section 0 and proceed to Section 2.
 
 If `result` is `"upgrade-available"` but the snooze file (Section 0d) is still valid for that remote version → also skip.
@@ -54,6 +61,7 @@ If `result` is `"upgrade-available"` but the snooze file (Section 0d) is still v
 ### 0c. Fetch remote version
 
 Run:
+
 ```bash
 curl -fsSL --max-time 10 https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/VERSION
 ```
@@ -61,6 +69,7 @@ curl -fsSL --max-time 10 https://raw.githubusercontent.com/e2enetworks-oss/e2ene
 Capture as `REMOTE_VERSION`. If the command fails, returns empty output, or the output does not match `^[0-9]+\.[0-9]+\.[0-9]+$` → treat `REMOTE_VERSION` as equal to `LOCAL_VERSION` and proceed to Section 2 (**fail-open — never block the user on a network error**).
 
 Write `~/.e2e/.version-check-cache.json` immediately after the fetch (`mkdir -p ~/.e2e` first if needed):
+
 - `REMOTE_VERSION == LOCAL_VERSION` → `result: "up-to-date"`, TTL 60 min
 - `REMOTE_VERSION > LOCAL_VERSION` → `result: "upgrade-available"`, TTL 720 min
 
@@ -71,6 +80,7 @@ Compare `LOCAL_VERSION` and `REMOTE_VERSION` by splitting on `.` and comparing m
 If `REMOTE_VERSION <= LOCAL_VERSION` → proceed to Section 2.
 
 If `REMOTE_VERSION > LOCAL_VERSION`:
+
 1. Read `~/.e2e/.version-snooze.json` if it exists:
    ```json
    { "snoozed_until": "<iso8601>", "remote_version": "<x.y.z>" }
@@ -85,14 +95,18 @@ If `REMOTE_VERSION > LOCAL_VERSION`:
 ### 0e. Prompt the user
 
 Use `AskUserQuestion`:
+
 - **question**: `A newer version of the use-e2e-cloud skill is available. You have **v{LOCAL_VERSION}** installed; the latest is **v{REMOTE_VERSION}**. Would you like to upgrade now?`
 - **options**: `Yes` / `No`
 
 **"Yes"** → Run the installer automatically:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/e2enetworks-oss/e2enetworks-skills/main/scripts/install.sh | bash
 ```
+
 If the command succeeds, tell the user:
+
 > Upgraded to v{REMOTE_VERSION}. Please start a fresh conversation and invoke `/use-e2e-cloud` again — the new version is now installed and will load on your next session.
 
 If the command fails, tell the user what went wrong and suggest they run the installer manually.
@@ -112,6 +126,7 @@ Keep session start cheap. The minimum work that runs on every load is:
 That's it. Trust saved alias, project ID, and location silently — see `references/access.md` Step 7a.
 
 **Do not, on every load:**
+
 - Run `e2ectl --version` or `npm view ...` to compare CLI versions (see `access.md` Step 2b — reactive only)
 - Re-run `project list` to validate the saved default project ID (saved IDs may be IAM-shared and won't appear there)
 - Re-prompt for profile, project, or location when valid context is already saved
@@ -124,6 +139,7 @@ The user wants to start working, not watch the skill audit itself. Prompts are r
 See `references/access.md` for the full flow (Node.js check → CLI install → Global vs Project).
 
 **Permission rules — strictly required:**
+
 - Each Bash call must start with a single command token — no `&&` or `;` chains
 - Poll node status by running `sleep` and `node get` as separate Bash calls, never chained. Status values are case-insensitive — always use `grep -i` when matching status strings.
 - `&&` inside an `ssh` remote command string is fine — only the outer `Bash` tool call must not chain
@@ -137,31 +153,31 @@ If any command returns `Profile "<alias>" was not found`: tell the user in plain
 
 ## 4. Capability Index
 
-| Want to... | Reference |
-|---|---|
-| Set up credentials / switch profiles | `references/access.md` |
-| List or create projects | `references/project.md` |
-| Provision, upgrade, or delete nodes | `references/nodes.md` |
-| Power on/off, save image, attach resources | `references/nodes.md` |
-| List, rename, or delete saved images | `references/image.md` |
-| Create a node from a saved image | `references/image.md` |
-| Manage reserved IPs | `references/reserved-ip.md` |
-| Create or attach volumes | `references/volume.md` |
-| Create or attach VPCs | `references/vpc.md` |
-| Create or attach security groups | `references/security-group.md` |
-| Create or manage load balancers (ALB/NLB) | `references/load-balancer.md` |
-| Create or manage DBaaS clusters (MariaDB/MySQL/PostgreSQL) | `references/dbaas.md` |
-| Deploy a frontend or backend app | `references/deploy.md` |
-| SSH into a node, DNS, HTTPS | `references/deploy.md` |
-| Estimate costs for any service | `references/cost-estimation.md` |
-| Raise, track, reply to, or close support tickets | `references/support-ticket.md` |
-
+| Want to...                                                 | Reference                       |
+| ---------------------------------------------------------- | ------------------------------- |
+| Set up credentials / switch profiles                       | `references/access.md`          |
+| List or create projects                                    | `references/project.md`         |
+| Provision, upgrade, or delete nodes                        | `references/nodes.md`           |
+| Power on/off, save image, attach resources                 | `references/nodes.md`           |
+| List, rename, or delete saved images                       | `references/image.md`           |
+| Create a node from a saved image                           | `references/image.md`           |
+| Manage reserved IPs                                        | `references/reserved-ip.md`     |
+| Create or attach volumes                                   | `references/volume.md`          |
+| Create or attach VPCs                                      | `references/vpc.md`             |
+| Create or attach security groups                           | `references/security-group.md`  |
+| Create or manage load balancers (ALB/NLB)                  | `references/load-balancer.md`   |
+| Create or manage DBaaS clusters (MariaDB/MySQL/PostgreSQL) | `references/dbaas.md`           |
+| Deploy a frontend or backend app                           | `references/deploy.md`          |
+| SSH into a node, DNS, HTTPS                                | `references/deploy.md`          |
+| Estimate costs for any service                             | `references/cost-estimation.md` |
+| Raise, track, reply to, or close support tickets           | `references/support-ticket.md`  |
 
 ## 5. Critical Rules
 
 Critical rules live in each service's reference file — see the **Rules**, **Error Recovery**, and **Polling** sections inside each.
 
 **Hard rules:**
+
 - **Bulk delete order:** nodes → volumes → VPCs → security groups → SSH keys → reserved IPs
 - **Case-insensitive status polling:** all status checks (Running, Active, Attached, etc.) must use case-insensitive matching — always `grep -i`, never bare `grep`
 - **Unsupported actions:** always try your best to fulfill the request using the available CLI commands and reference files. Only if the action is genuinely not possible through this skill — after exhausting all options — tell the user: "This skill currently doesn't support that. You can do it directly in E2E Cloud MyAccount at https://myaccount.e2enetworks.com"
@@ -171,12 +187,12 @@ Critical rules live in each service's reference file — see the **Rules**, **Er
 
 Always apply these unless the user says otherwise:
 
-| Value | Default |
-|---|---|
-| SSH user | `root` |
-| Mount path | `/data` |
+| Value           | Default                 |
+| --------------- | ----------------------- |
+| SSH user        | `root`                  |
+| Mount path      | `/data`                 |
 | Public key path | `~/.ssh/id_ed25519.pub` |
-| SSH key label | `node-access` |
+| SSH key label   | `node-access`           |
 
 ## 7. Output Rules
 

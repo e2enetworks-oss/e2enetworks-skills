@@ -221,6 +221,7 @@ When the skill loads and the profile already has a saved default project ID and 
 If the saved default project ID does not appear in `project list` output, this does **not** mean the project was deleted. It is most likely an IAM-shared project (owned by another account, accessible via IAM) — `project list` only shows projects owned by the current account, so IAM-shared projects are never in that listing.
 
 Therefore:
+
 - Do NOT print messages like "your saved default project ID X doesn't appear in your current project list — it may have been deleted."
 - Do NOT prompt the user to re-select a project on session load.
 - Do NOT re-run Step 5 unless the user explicitly asks to switch projects, or a real API call returns "project not found" / "permission denied" for that ID.
@@ -277,4 +278,3 @@ CLI config remove --alias <alias>
 - mask API keys and secrets in all output
 - use `--json` only when parsing output programmatically
 - after setup is complete, summarize: alias, project id, location — one line each
-

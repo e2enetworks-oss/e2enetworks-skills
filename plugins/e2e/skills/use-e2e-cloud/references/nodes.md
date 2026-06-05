@@ -74,6 +74,7 @@ Options: one button per available unattached reserved IP (showing the IP address
 Before running any command, display a summary of all selected options:
 
 > Here's what will be created:
+>
 > - **Name:** `<name>`
 > - **OS:** `<os>`
 > - **Plan:** `<plan>`
@@ -378,6 +379,7 @@ CLI node action ssh-key attach <node-id> --ssh-key-id <ssh-key-id> --alias <alia
 ```
 
 Rules:
+
 - use `--label`, not `--name`
 - use `--public-key-file`, not `--key`
 - if a key with the same label already exists, ask: use existing or upload new?
@@ -454,13 +456,13 @@ Suggest `/data` if no mount path is provided.
 
 ## Error Recovery
 
-| Error | Cause | Fix |
-|---|---|---|
-| `412` on `node create` | `--plan` is a SKU shortname, not the full string | Re-run `catalog plans`, copy the exact full string including parenthetical spec |
-| `node action * attach` fails immediately | Node is still `Creating` | Poll `node get` until status is `Running`, then retry the attach |
-| `You cannot add the same key again` on `ssh-key create` | Key content already uploaded under a different label | Run `ssh-key list`, find the existing key, use its id with `node action ssh-key attach` |
-| `node upgrade` rejected | Plan string is a shortname or contains extra whitespace | Re-run `catalog plans` and copy the exact string from output |
-| `node action vpc attach` returns "VPC not found" | VPC is still `Creating` | Poll `vpc list` until state is `Active`, then retry attach |
+| Error                                                   | Cause                                                   | Fix                                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `412` on `node create`                                  | `--plan` is a SKU shortname, not the full string        | Re-run `catalog plans`, copy the exact full string including parenthetical spec         |
+| `node action * attach` fails immediately                | Node is still `Creating`                                | Poll `node get` until status is `Running`, then retry the attach                        |
+| `You cannot add the same key again` on `ssh-key create` | Key content already uploaded under a different label    | Run `ssh-key list`, find the existing key, use its id with `node action ssh-key attach` |
+| `node upgrade` rejected                                 | Plan string is a shortname or contains extra whitespace | Re-run `catalog plans` and copy the exact string from output                            |
+| `node action vpc attach` returns "VPC not found"        | VPC is still `Creating`                                 | Poll `vpc list` until state is `Active`, then retry attach                              |
 
 ## Output Rules
 
@@ -470,4 +472,3 @@ Suggest `/data` if no mount path is provided.
 - after actions, include the confirmed node status from the follow-up `node get`
 - after create, attach, or delete, say the next useful step
 - do not show raw JSON unless asked
-

@@ -33,7 +33,7 @@ Supports Claude Code, OpenAI Codex, OpenCode, Cursor or any coding agent. Run th
    /use-e2e-cloud
    ```
 
-   Or just ask in natural language: *"Set up my E2E config."*
+   Or just ask in natural language: _"Set up my E2E config."_
 
 3. The skill will:
    - check whether `e2ectl` is already installed
@@ -55,7 +55,6 @@ From that point on, the skill uses your saved alias, project id, and location fo
 - "Deploy my backend repo on this node."
 
 In Claude Code, you can also run `/use-e2e-cloud`.
-
 
 ## Workflow coverage
 

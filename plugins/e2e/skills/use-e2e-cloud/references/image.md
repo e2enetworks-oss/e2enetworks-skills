@@ -92,9 +92,8 @@ The node must be in `Running` status before saving. After the command completes,
 
 ## Error Recovery
 
-| Error | Cause | Fix |
-|---|---|---|
-| `412` on saved-image node create | `--plan` is a SKU shortname, not the full string | Re-run `catalog plans`, copy the exact full string |
-| `--saved-image-template-id` not found | Wrong ID or image deleted | Re-run `image list` to get the current `Template ID` |
+| Error                                    | Cause                                                                 | Fix                                                    |
+| ---------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------ |
+| `412` on saved-image node create         | `--plan` is a SKU shortname, not the full string                      | Re-run `catalog plans`, copy the exact full string     |
+| `--saved-image-template-id` not found    | Wrong ID or image deleted                                             | Re-run `image list` to get the current `Template ID`   |
 | `--image` rejected on saved-image create | Using the saved image's OS name instead of a catalog image identifier | Use the `Image` value from `node catalog plans` output |
-

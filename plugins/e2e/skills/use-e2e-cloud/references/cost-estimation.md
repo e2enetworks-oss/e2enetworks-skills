@@ -8,9 +8,9 @@ Use this reference when a user asks about pricing, wants an estimate, or is comp
 
 E2E resources support two billing modes:
 
-| Mode | How it works |
-|---|---|
-| **Hourly** | Pay-as-you-go. Billed per hour of usage. Cancel anytime. |
+| Mode          | How it works                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Hourly**    | Pay-as-you-go. Billed per hour of usage. Cancel anytime.                                                                             |
 | **Committed** | Upfront commitment for a term (e.g. 30/90/180/365 days). Lower hourly-equivalent rate. `auto-renew` or `hourly-billing` at term end. |
 
 All `plans` commands show hourly rates by default. Committed plan IDs and durations appear in the same output when available.
@@ -83,6 +83,7 @@ Shows: plan name, hourly price, committed plan IDs.
 ### Reserved IPs
 
 Reserved IPs have a fixed price (no plans command needed):
+
 - **INR:** ₹199/month
 - **USD:** $3/month
 
