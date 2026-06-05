@@ -106,6 +106,7 @@ Do not format a volume unless it is new, empty, and the user has explicitly allo
 Before deleting a volume, check its status with `volume list` or `volume get`.
 
 If status is `Attached` (or delete returns a 412 "detach first" error):
+
 1. Tell the user the volume is attached and must be detached first.
 2. Run detach:
    ```bash
@@ -120,4 +121,3 @@ If status is `Attached` (or delete returns a 412 "detach first" error):
 - after create, show volume id, name, size, and next step (attach to a node)
 - after attach, say which node and volume are now connected and suggest mount steps
 - do not show raw JSON unless asked
-

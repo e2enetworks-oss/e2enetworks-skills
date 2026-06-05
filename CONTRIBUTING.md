@@ -24,6 +24,7 @@ e2enetworks-skills/
 │               ├── project.md
 │               ├── reserved-ip.md
 │               ├── security-group.md
+│               ├── support-ticket.md
 │               ├── volume.md
 │               └── vpc.md
 ├── scripts/

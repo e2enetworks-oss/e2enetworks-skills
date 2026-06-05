@@ -35,6 +35,7 @@ Options: `Auto-renew` / `Switch to hourly billing`
 Before running any command, display a summary of all selected options:
 
 > Here's what will be created:
+>
 > - **Name:** `<name>`
 > - **IP range:** `<E2E assigned / custom CIDR>`
 > - **Billing:** `<hourly / committed plan>`
@@ -54,6 +55,7 @@ The API returns two different IDs when you create or list a VPC:
 - **Network ID** (`network_id`) — the canonical VPC ID used by all follow-up commands
 
 All of the following use the **Network ID**:
+
 - `vpc get <vpcId>`
 - `vpc delete <vpcId>`
 - `node action vpc attach --vpc-id`
@@ -145,13 +147,13 @@ CLI node action vpc detach <node-id> --vpc-id <network-id> --alias <alias>
 
 ## When to Use VPC
 
-| Scenario | VPC needed? | Notes |
-|---|---|---|
-| DBaaS with private networking | Yes | Attach VPC at DBaaS create or after via `dbaas network vpc attach` |
-| DBaaS with public IP only | No | DBaaS can be reached via public endpoint without VPC |
-| Nodes communicating privately | Yes | Attach same VPC to all nodes |
-| Load balancer with internal backends | Yes | LB and backends in same VPC |
-| No private networking needed | No | Nodes with public IPs only |
+| Scenario                             | VPC needed? | Notes                                                              |
+| ------------------------------------ | ----------- | ------------------------------------------------------------------ |
+| DBaaS with private networking        | Yes         | Attach VPC at DBaaS create or after via `dbaas network vpc attach` |
+| DBaaS with public IP only            | No          | DBaaS can be reached via public endpoint without VPC               |
+| Nodes communicating privately        | Yes         | Attach same VPC to all nodes                                       |
+| Load balancer with internal backends | Yes         | LB and backends in same VPC                                        |
+| No private networking needed         | No          | Nodes with public IPs only                                         |
 
 Security groups do not apply to DBaaS. DBaaS access is controlled via IP whitelisting, not security groups.
 
@@ -176,11 +178,11 @@ CLI node get <node-id> --alias <alias>
 
 ## Error Recovery
 
-| Error | Cause | Fix |
-|---|---|---|
-| `node action vpc attach` returns "VPC X not found" | VPC state is not yet `Active` | Poll `vpc list` until State column shows `Active`, then retry |
-| `vpc delete` rejected | Node is still attached to the VPC | Detach with `node action vpc detach`, verify with `node get`, then delete |
-| Attach succeeds but node has no private IP | Wrong ID passed (`vpc create` VPC ID vs Network ID) | Run `vpc list`, use the **Network ID** column value for `--vpc-id` |
+| Error                                              | Cause                                               | Fix                                                                       |
+| -------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `node action vpc attach` returns "VPC X not found" | VPC state is not yet `Active`                       | Poll `vpc list` until State column shows `Active`, then retry             |
+| `vpc delete` rejected                              | Node is still attached to the VPC                   | Detach with `node action vpc detach`, verify with `node get`, then delete |
+| Attach succeeds but node has no private IP         | Wrong ID passed (`vpc create` VPC ID vs Network ID) | Run `vpc list`, use the **Network ID** column value for `--vpc-id`        |
 
 ## Output Rules
 
@@ -188,5 +190,3 @@ CLI node get <node-id> --alias <alias>
 - after create, remind the user to wait for `Active` state before attaching
 - after attach, confirm the node now has a private IP
 - do not show raw JSON unless asked
-
-

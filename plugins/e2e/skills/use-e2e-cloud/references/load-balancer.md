@@ -27,6 +27,7 @@ Ask: "Which plan would you like?"
 Options: one button per plan from `lb plans` output
 
 **Step 5 — protocol** (if not given):
+
 - For ALB: Ask: "Which protocol should the load balancer accept?" Options: `HTTP` / `HTTPS` / `HTTP + HTTPS`
 - For NLB: skip — protocol is TCP
 
@@ -80,6 +81,7 @@ Options: `Auto-renew` / `Switch to hourly billing`
 Before running any command, display a summary of all selected options:
 
 > Here's what will be created:
+>
 > - **Type:** `<ALB / NLB>`
 > - **Visibility:** `<Public / Internal>`
 > - **Name:** `<name>`
@@ -251,11 +253,11 @@ There is no update command for backend servers. To change a server (IP, port, or
 
 ## Load Balancing Algorithms
 
-| Algorithm | Behavior |
-|---|---|
+| Algorithm              | Behavior                                     |
+| ---------------------- | -------------------------------------------- |
 | `roundrobin` (default) | Even distribution across servers in rotation |
-| `leastconn` | Server with fewest active connections |
-| `source` | Client IP-based session persistence |
+| `leastconn`            | Server with fewest active connections        |
+| `source`               | Client IP-based session persistence          |
 
 Set at create with `--algorithm <algo>` or update with `lb backend group update <lbId> <groupName> --algorithm <algo>`.
 
@@ -304,14 +306,14 @@ After create, poll `lb get` until the LB is `Running`. Do not attempt backend gr
 
 ## Error Recovery
 
-| Error | Cause | Fix |
-|---|---|---|
-| 412 on `lb create` | Plan name mismatch | Re-run `lb plans`, use exact plan name |
-| NLB multiple backend groups | NLB supports only one backend group | Use single `--backend-group-*` set |
-| Last backend group not deletable | Must keep at least one | Create new group first if replacement needed |
-| Last backend server not deletable | Must keep at least one server per group | Add new server first if replacement needed |
-| Duplicate backend server name | Server names must be unique within group | Use unique server name |
-| Reserved IP not found/available | IP doesn't exist or is already attached | Run `reserved-ip list`, pick unattached IP |
+| Error                             | Cause                                    | Fix                                          |
+| --------------------------------- | ---------------------------------------- | -------------------------------------------- |
+| 412 on `lb create`                | Plan name mismatch                       | Re-run `lb plans`, use exact plan name       |
+| NLB multiple backend groups       | NLB supports only one backend group      | Use single `--backend-group-*` set           |
+| Last backend group not deletable  | Must keep at least one                   | Create new group first if replacement needed |
+| Last backend server not deletable | Must keep at least one server per group  | Add new server first if replacement needed   |
+| Duplicate backend server name     | Server names must be unique within group | Use unique server name                       |
+| Reserved IP not found/available   | IP doesn't exist or is already attached  | Run `reserved-ip list`, pick unattached IP   |
 
 ## Output Rules
 
@@ -326,4 +328,3 @@ After create, poll `lb get` until the LB is `Running`. Do not attempt backend gr
 - `references/reserved-ip.md` — for `--reserve-ip`
 - `references/security-group.md` — for `--security-group`
 - `references/vpc.md` — for `--vpc-id`
-

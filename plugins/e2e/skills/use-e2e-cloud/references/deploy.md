@@ -18,16 +18,16 @@ requests one or `root` fails.
 
 Before deploying, check `package.json` or project files to determine the framework:
 
-| Signal | Framework | Strategy |
-|---|---|---|
-| `vite` in devDependencies + `react`/`vue`/`svelte` | Vite SPA | Build → `dist/` → Nginx static |
-| `next` in dependencies + `output: 'export'` | Next.js static | Build → `out/` → Nginx static |
-| `next` in dependencies (no static export) | Next.js SSR | Upload source → `npm start` → systemd + Nginx proxy |
-| `express` / `fastify` / `hono` | Node.js backend | Upload source → `node` → systemd + Nginx proxy |
-| `requirements.txt` + `fastapi`/`uvicorn` | Python FastAPI | Upload → venv → uvicorn → systemd + Nginx proxy |
-| `requirements.txt` + `django`/`gunicorn` | Python Django | Upload → venv → migrate → gunicorn → systemd + Nginx proxy |
-| `go.mod` | Go | Build linux/amd64 binary locally → upload → systemd |
-| `Dockerfile` | Docker | Install Docker → build → `docker run` |
+| Signal                                             | Framework       | Strategy                                                   |
+| -------------------------------------------------- | --------------- | ---------------------------------------------------------- |
+| `vite` in devDependencies + `react`/`vue`/`svelte` | Vite SPA        | Build → `dist/` → Nginx static                             |
+| `next` in dependencies + `output: 'export'`        | Next.js static  | Build → `out/` → Nginx static                              |
+| `next` in dependencies (no static export)          | Next.js SSR     | Upload source → `npm start` → systemd + Nginx proxy        |
+| `express` / `fastify` / `hono`                     | Node.js backend | Upload source → `node` → systemd + Nginx proxy             |
+| `requirements.txt` + `fastapi`/`uvicorn`           | Python FastAPI  | Upload → venv → uvicorn → systemd + Nginx proxy            |
+| `requirements.txt` + `django`/`gunicorn`           | Python Django   | Upload → venv → migrate → gunicorn → systemd + Nginx proxy |
+| `go.mod`                                           | Go              | Build linux/amd64 binary locally → upload → systemd        |
+| `Dockerfile`                                       | Docker          | Install Docker → build → `docker run`                      |
 
 ---
 
@@ -208,9 +208,9 @@ Always ask for the **root domain** and **subdomain** separately:
 
 Show the DNS record to add:
 
-| Type | Name | Value | TTL |
-|---|---|---|---|
-| `A` | `api` | `<node-public-ip>` | 300 |
+| Type | Name  | Value              | TTL |
+| ---- | ----- | ------------------ | --- |
+| `A`  | `api` | `<node-public-ip>` | 300 |
 
 Note: the Name field should be just the subdomain label. Some providers append the root domain automatically.
 
@@ -297,4 +297,3 @@ ssh -i <key> root@<public-ip> "mysql_secure_installation"
 - after deploy, summarize: app name, URL or IP, service status, and next step
 - for failed deploys, show the error line and the fix — not the full log
 - do not dump long stdout unless the user asks
-
